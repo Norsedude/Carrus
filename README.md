@@ -61,6 +61,40 @@ All use the password `Test#1234`, which is public demo data from the test plan a
 With the demo seed, search **San Jose, CA** with the default dates. With `npm run seed:mateo` (the test-plan fixtures), search **SJC**, pickup **Dec 10 2026 10:00**, return **Dec 13 2026 10:00**.
 Demo payment cards: `4242 4242 4242 4242` approves, `4000 0000 0000 0002` declines.
 
+## Where data lives
+
+Nothing is hosted. Each person who runs the project gets their own separate database on their own computer, inside Docker.
+
+- **Accounts:** Supabase Auth stores the email and a hashed password. The app never handles passwords itself.
+- **Profiles and roles:** `profiles` and `user_roles` tables. Roles (customer, partner, admin) come only from `user_roles`.
+- **App data:** vehicles, photos, availability, quotes, bookings and payments are tables in the same local Postgres database, each protected by row-level security.
+- **Payments:** simulated. Only the demo card numbers are accepted and card details are never saved.
+- **Resetting:** data survives restarting Docker, but every seed command and the integration and browser tests wipe and reload it.
+
+## How to test
+
+### By hand
+
+1. Start everything as described in "Run it locally" and open http://localhost:3000.
+2. Sign in as `test.customer@carrus.test`, search **San Jose, CA**, add up to three vehicles to Compare, pick one, and check out with `4242 4242 4242 4242` (any future expiry, any CVC). The booking appears under **Trips**.
+3. Try `4000 0000 0000 0002` to see a declined payment: no reservation is created.
+4. Sign in as `test.partner@carrus.test` to see the same booking under the partner dashboard, and to add or edit a listing.
+5. Sign in as `test.admin@carrus.test` to approve the new listing or a Join the Fleet application.
+
+To follow the written test cases (TC-S01, TC-B01 and so on) exactly, load their data first with `npm run seed:mateo`, then search **SJC**, Dec 10 2026 10:00 to Dec 13 2026 10:00.
+
+### Automated
+
+```bash
+npm test                  # 46 logic tests, no database needed
+npm run test:integration  # 24 database tests; needs local Supabase running
+npx playwright install chromium   # first time only
+npm run test:e2e          # 13 browser tests
+```
+
+The integration and browser tests load the `seed:mateo` data. Run `npm run seed:demo` afterwards to get the photographed listings back.
+`docs/TEST_MATRIX.md` lists every test case ID, whether it passes, and which features are not built yet.
+
 ## Commands
 
 | Command | What it does |
