@@ -1,0 +1,62 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { VehicleForm } from "@/components/partner-forms";
+import { PageShell, StateBadge, cardCls } from "@/components/ui";
+import { requireVerifiedPartner } from "@/lib/auth/partner";
+import { utcToZonedLocal } from "@/lib/time";
+import { KNOWN_LOCATIONS } from "@/server/search/location";
+import { VEHICLE_TYPES } from "@/server/search/types";
+
+export const metadata: Metadata = { title: "Edit vehicle" };
+
+export default async function EditVehiclePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { partner, db } = await requireVerifiedPartner(`/partner/vehicles/${id}/edit`);
+  if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
+  // Scoped to the caller's own partner; RLS enforces the same rule.
+  const { data: v } = await db.from("vehicles").select("*").eq("id", id).eq("partner_id", partner.id).maybeSingle();
+  if (!v) notFound();
+  const { data: windows } = await db
+    .from("availability_windows")
+    .select("start_at, end_at")
+    .eq("vehicle_id", v.id)
+    .order("start_at")
+    .limit(1);
+  const w = windows?.[0];
+  const location = KNOWN_LOCATIONS.find((l) => l.label === v.location_label);
+
+  return (
+    <PageShell
+      title={`Edit ${v.year} ${v.make} ${v.model}`}
+      intro={
+        <span className="flex items-center gap-2">
+          Listing {v.public_code} <StateBadge state={v.lifecycle_status} />
+        </span>
+      }
+    >
+      <div className={`${cardCls} p-5`}>
+        <VehicleForm
+          vehicleId={v.id}
+          status={v.lifecycle_status}
+          approved={Boolean(v.approved_at)}
+          initial={{
+            make: v.make,
+            model: v.model,
+            year: String(v.year),
+            color: v.color,
+            vehicleType: v.vehicle_type,
+            seats: String(v.seats),
+            transmission: v.transmission,
+            description: v.description,
+            locationId: location?.id ?? "",
+            dailyRate: (v.daily_rate_cents / 100).toFixed(2),
+            availableFrom: w ? utcToZonedLocal(new Date(w.start_at), v.time_zone) : "",
+            availableUntil: w ? utcToZonedLocal(new Date(w.end_at), v.time_zone) : "",
+          }}
+          locations={KNOWN_LOCATIONS.map((l) => ({ value: l.id, label: l.label }))}
+          types={[...VEHICLE_TYPES]}
+        />
+      </div>
+    </PageShell>
+  );
+}
