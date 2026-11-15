@@ -31,16 +31,16 @@ export default async function JoinTheFleetPage({ searchParams }: { searchParams:
       <ul className="grid gap-4 md:grid-cols-3">
         {BENEFITS.map((b) => (
           <li key={b.title} className={`${cardCls} p-5`}>
-            <h2 className="text-base font-semibold text-slate-900">{b.title}</h2>
-            <p className="mt-2 text-sm text-slate-700">{b.body}</p>
+            <h2 className="text-base font-semibold text-gray-900">{b.title}</h2>
+            <p className="mt-2 text-sm text-gray-700">{b.body}</p>
           </li>
         ))}
       </ul>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.2fr]">
         <section className={`${cardCls} h-fit p-5`} aria-labelledby="steps-heading">
-          <h2 id="steps-heading" className="text-base font-semibold text-slate-900">How onboarding works</h2>
-          <ol className="mt-3 list-inside list-decimal space-y-2 text-sm text-slate-700">
+          <h2 id="steps-heading" className="text-base font-semibold text-gray-900">How onboarding works</h2>
+          <ol className="mt-3 list-inside list-decimal space-y-2 text-sm text-gray-700">
             {STEPS.map((s) => (
               <li key={s}>{s}</li>
             ))}
@@ -48,12 +48,12 @@ export default async function JoinTheFleetPage({ searchParams }: { searchParams:
         </section>
 
         <section className={`${cardCls} p-5`} aria-labelledby="apply-heading">
-          <h2 id="apply-heading" className="mb-3 text-base font-semibold text-slate-900">
+          <h2 id="apply-heading" className="mb-3 text-base font-semibold text-gray-900">
             {partner ? "Your application" : "Apply"}
           </h2>
           {!user && (
             <div className="space-y-3">
-              <p className="text-sm text-slate-700">Sign in or create an account to apply. Applying does not change how you rent as a customer.</p>
+              <p className="text-sm text-gray-700">Sign in or create an account to apply. Applying does not change how you rent as a customer.</p>
               <div className="flex flex-wrap gap-2">
                 <Link href="/signup?next=/join-the-fleet" className={btnPrimary}>Create an account</Link>
                 <Link href="/login?next=/join-the-fleet" className={btnSecondary}>Sign in</Link>
@@ -62,10 +62,10 @@ export default async function JoinTheFleetPage({ searchParams }: { searchParams:
           )}
           {user && !partner && <FleetApplicationForm email={user.email} />}
           {partner && (
-            <div className="space-y-3 text-sm text-slate-700" data-testid="application-status">
+            <div className="space-y-3 text-sm text-gray-700" data-testid="application-status">
               {submitted && <Notice tone="success">Application submitted. An administrator will review it.</Notice>}
               <p className="flex flex-wrap items-center gap-2">
-                <span className="font-medium text-slate-900">{partner.display_name}</span>
+                <span className="font-medium text-gray-900">{partner.display_name}</span>
                 <StateBadge state={partner.verification_status} />
               </p>
               {partner.verification_status === "pending" && <p>Your application is waiting for an administrator. You cannot list vehicles until it is approved.</p>}

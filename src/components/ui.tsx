@@ -1,18 +1,18 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 
 const btn =
-  "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 " +
+  "inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-[0.95rem] font-bold transition-colors " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand " +
   "disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
-export const btnPrimary = `${btn} bg-blue-700 text-white hover:bg-blue-800`;
-export const btnSecondary = `${btn} border border-slate-300 bg-white text-slate-900 hover:bg-slate-100`;
+export const btnPrimary = `${btn} bg-brand text-white hover:bg-brand-dark`;
+export const btnSecondary = `${btn} border border-gray-300 bg-white text-gray-900 hover:bg-gray-100`;
 export const btnDanger = `${btn} border border-red-300 bg-white text-red-700 hover:bg-red-50`;
 export const linkCls =
-  "font-medium text-blue-700 underline underline-offset-2 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-blue-700";
+  "font-medium text-brand underline underline-offset-2 hover:text-brand-dark focus-visible:outline-2 focus-visible:outline-brand";
 export const inputCls =
-  "block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm " +
-  "focus:border-blue-700 focus:outline-2 focus:outline-blue-700 aria-[invalid=true]:border-red-600";
-export const cardCls = "rounded-xl border border-slate-200 bg-white shadow-sm";
+  "block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-[0.95rem] text-gray-900 " +
+  "focus:border-brand focus:outline-2 focus:outline-brand aria-[invalid=true]:border-red-600";
+export const cardCls = "rounded-xl border border-gray-200 bg-white";
 
 export function Field({
   label,
@@ -25,7 +25,7 @@ export function Field({
   const describedBy = [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(" ");
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-800">
+      <label htmlFor={id} className="mb-1 block text-sm font-medium text-gray-800">
         {label}
       </label>
       <input
@@ -37,7 +37,7 @@ export function Field({
         className={inputCls}
       />
       {hint && (
-        <p id={`${id}-hint`} className="mt-1 text-xs text-slate-600">
+        <p id={`${id}-hint`} className="mt-1 text-xs text-gray-600">
           {hint}
         </p>
       )}
@@ -51,7 +51,7 @@ export function Field({
 }
 
 const tones = {
-  info: "border-blue-200 bg-blue-50 text-blue-950",
+  info: "border-brand/25 bg-brand-soft text-brand-dark",
   success: "border-emerald-200 bg-emerald-50 text-emerald-950",
   warning: "border-amber-300 bg-amber-50 text-amber-950",
   error: "border-red-300 bg-red-50 text-red-900",
@@ -78,8 +78,8 @@ export function Notice({
 
 export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "blue" | "green" | "amber"; children: ReactNode }) {
   const cls = {
-    neutral: "bg-slate-100 text-slate-800",
-    blue: "bg-blue-100 text-blue-900",
+    neutral: "bg-gray-100 text-gray-800",
+    blue: "bg-brand-soft text-brand-dark",
     green: "bg-emerald-100 text-emerald-900",
     amber: "bg-amber-100 text-amber-900",
   }[tone];
@@ -89,8 +89,8 @@ export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "blue
 export function PageShell({ title, intro, children, narrow }: { title: string; intro?: ReactNode; children: ReactNode; narrow?: boolean }) {
   return (
     <main className={`mx-auto w-full min-w-0 flex-1 px-4 py-8 sm:px-6 ${narrow ? "max-w-xl" : "max-w-6xl"}`}>
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{title}</h1>
-      {intro && <p className="mt-2 max-w-3xl text-slate-700">{intro}</p>}
+      <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{title}</h1>
+      {intro && <p className="mt-2 max-w-3xl text-gray-700">{intro}</p>}
       <div className="mt-6">{children}</div>
     </main>
   );

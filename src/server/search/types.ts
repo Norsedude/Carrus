@@ -1,7 +1,7 @@
 import type { PriceBreakdown } from "@/server/pricing/pricing";
 import type { Coordinates } from "@/server/search/location";
 
-export const VEHICLE_TYPES = ["Sedan", "SUV", "Minivan", "Van", "Truck"] as const;
+export const VEHICLE_TYPES = ["Sedan", "SUV", "Sports", "Luxury", "Minivan", "Van", "Truck"] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];
 
 export const SORT_OPTIONS = ["total_asc", "daily_asc", "distance_asc"] as const;
@@ -61,6 +61,8 @@ export type VehicleListing = {
   coordinates: Coordinates;
   timeZone: string;
   distanceMiles: number | null;
+  /** Public path of the primary photo, or null when the listing has none. */
+  photoUrl: string | null;
   dailyRateCents: number;
   pricingPolicyId: string | null;
   partner: { id: string; displayName: string; kind: string; verified: boolean } | null;

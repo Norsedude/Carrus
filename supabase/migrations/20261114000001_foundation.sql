@@ -736,6 +736,6 @@ insert into public.providers (adapter_key, name, capability, is_mock) values
 
 insert into public.pricing_policies (key, version, label, formula) values
   ('flat-fees', 1, 'Flat service fee and flat taxes (Mateo fixture profile)',
-   '{"flatFees":[{"code":"service_fee","label":"Service fee","cents":3000},{"code":"taxes_flat","label":"Taxes and surcharges","cents":3000}],"protectionCents":0,"taxRateBps":0}'),
+   '{"flatFees":[{"code":"service_fee","label":"Mandatory fees","cents":3000},{"code":"taxes_flat","label":"Estimated taxes","cents":3000}],"protectionCents":0,"taxRateBps":0}'),
   ('protection-tax', 1, 'Protection plan plus 10% tax (Sanjay fixture profile)',
    '{"flatFees":[],"protectionCents":5200,"taxRateBps":1000}');

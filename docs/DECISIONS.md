@@ -22,4 +22,9 @@
 | D-016 | Simulated payment accepts only three listed demo card numbers and rejects anything else, so a real card is never accepted. Card details are not stored. | Proposed |
 | D-017 | A pickup in the past is rejected. For demos after the fixture dates pass, `CARRUS_FIXED_NOW` can pin the validation clock in development and test only. | Proposed |
 | D-018 | New listings start as draft or pending review and become public only on admin approval. Editing the rate of an approved listing keeps it published (TC-P02). | Proposed |
-| D-019 | "Demo rental sources" on the home page lists source categories rather than company names, because no company is a partner or integrated. | Proposed (Q-13) |
+| D-019 | Home page strip shows the nine company names from the team presentation (Budget, Enterprise, Hertz, Avis, Turo, Zipcar, Kayak, Expedia, Priceline) as plain text wordmarks, not official logo artwork, with a visible note that the prototype is not connected to or affiliated with them. | Approved by Mateo 2026-11-14 (names); note kept for honesty |
+| D-020 | Mock listings are written by hand and use photos from the team's own Figma file. Listings and photos are not scraped from Turo, Hertz or other marketplaces: their content is copyrighted and their terms prohibit scraping. FR04 "Rental Source Scraping" stays unimplemented; real sources need authorized API access. | Proposed; needs team awareness |
+| D-021 | Design: team logo PNG, Cardo everywhere, Figma colors. Exact Figma fidelity is not required for now; working features come first. | Approved by Mateo 2026-11-14 |
+| D-022 | Compare limit is three, per test cases TC-C02/C03 and the design diagrams (the mockup's six is not followed). Totals shown are all-in ("taxes and fees included"), matching TC-PT01 and the mockup's detail page. | From test plan |
+| D-023 | Flat-fee policy lines are named "Mandatory fees" and "Estimated taxes", per TC-B01/TC-PR01. | From test plan |
+| D-024 | Home search defaults pickup to tomorrow 10:00 and return four days later, from the current date. | Approved by Mateo 2026-11-14 |

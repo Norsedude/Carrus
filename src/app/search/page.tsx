@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MapPin, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { CompareTray } from "@/components/compare";
 import { FiltersPanel } from "@/components/filters-panel";
 import { SearchForm } from "@/components/search-form";
 import { Notice, btnSecondary, cardCls } from "@/components/ui";
@@ -9,11 +11,12 @@ import { serverEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/time";
 import { enabledAdapters, runSearch } from "@/server/search/service";
-import { SORT_LABELS, SORT_OPTIONS } from "@/server/search/types";
+import { SORT_OPTIONS, type SortOption } from "@/server/search/types";
 import { validateSearch, type RawParams } from "@/server/search/validator";
 
 export const metadata: Metadata = { title: "Search results" };
 
+const SORT_CHIPS: Record<SortOption, string> = { total_asc: "Lowest total", daily_asc: "Lowest daily rate", distance_asc: "Closest" };
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<RawParams> }) {
@@ -26,11 +29,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   if (!validation.ok && coreInvalid) {
     return (
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
-        <h1 className="text-2xl font-bold text-slate-900">Search vehicles</h1>
-        <div className="mt-4">
-          <Notice tone="error" title="Check your search">Fix the highlighted fields to see vehicles.</Notice>
-        </div>
-        <div className={`${cardCls} mt-4 p-5`}>
+        <h1 className="text-3xl font-bold text-gray-900">Search vehicles</h1>
+        <div className="mt-5">
           <SearchForm defaults={entered} errors={filterErrors} />
         </div>
       </main>
@@ -48,13 +48,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const result = await runSearch(criteria, enabledAdapters(db, serverEnv().PROVIDER_MODE));
   const trip = { pickup: criteria.pickupLocal, ret: criteria.returnLocal, location: criteria.locationLabel };
 
-  const pageHref = (page: number) => {
+  const hrefWith = (changes: Record<string, string>) => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(raw)) {
-      if (key === "page" || value === undefined) continue;
+      if (key in changes || key === "page" || value === undefined) continue;
       for (const v of Array.isArray(value) ? value : [value]) params.append(key, v);
     }
-    params.set("page", String(page));
+    for (const [key, value] of Object.entries(changes)) params.set(key, value);
     return `/search?${params.toString()}`;
   };
 
@@ -67,23 +67,31 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   if (criteria.model) applied.push(`Model: ${criteria.model}`);
   if (criteria.year) applied.push(`Year: ${criteria.year}`);
   applied.push(`Within ${criteria.radiusMiles} miles`);
+  const days = result.listings[0]?.price.billableDays;
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
-      <h1 className="text-2xl font-bold text-slate-900">Vehicles near {criteria.locationLabel}</h1>
-      <p className="mt-1 text-sm text-slate-700">
-        {formatDateTime(criteria.pickupAt, criteria.timeZone)} to {formatDateTime(criteria.returnAt, criteria.timeZone)}
-      </p>
-      <details className={`${cardCls} mt-4 p-4`}>
-        <summary className="cursor-pointer text-sm font-semibold text-blue-800">Change location or dates</summary>
-        <div className="mt-4">
-          <SearchForm defaults={{ location: criteria.locationLabel, pickup: criteria.pickupLocal, return: criteria.returnLocal }} submitLabel="Update search" />
-        </div>
-      </details>
+      <h1 className="sr-only">Vehicles near {criteria.locationLabel}</h1>
+      <SearchForm defaults={{ location: criteria.locationLabel, pickup: criteria.pickupLocal, return: criteria.returnLocal }} />
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-[0.95rem]">
+        <p className="flex items-center gap-2 text-gray-900">
+          <MapPin className="size-4 shrink-0 text-gray-500" aria-hidden />
+          <span>
+            {criteria.locationLabel} · {formatDateTime(criteria.pickupAt, criteria.timeZone)} to {formatDateTime(criteria.returnAt, criteria.timeZone)}
+            {days ? ` · ${days} day${days === 1 ? "" : "s"}` : ""}
+          </span>
+        </p>
+        <p className="flex items-center gap-2 italic text-gray-500">
+          <RefreshCw className="size-3.5" aria-hidden />
+          Checked {formatDateTime(result.searchedAt, criteria.timeZone)} in {result.durationMs} ms
+        </p>
+      </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[260px_1fr]">
-        <aside className={`${cardCls} h-fit p-4`}>
-          <h2 className="mb-3 text-base font-semibold text-slate-900">Filters</h2>
+      <div className="mt-6 grid gap-7 lg:grid-cols-[17rem_1fr]">
+        <aside className={`${cardCls} h-fit p-5`}>
+          <h2 className="mb-4 flex items-center gap-2 border-b border-gray-200 pb-4 text-xl font-bold text-gray-900">
+            <SlidersHorizontal className="size-5" aria-hidden /> Filters
+          </h2>
           <FiltersPanel
             key={JSON.stringify(raw)}
             base={{ location: criteria.locationLabel, pickup: criteria.pickupLocal, ret: criteria.returnLocal }}
@@ -99,20 +107,35 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               sort: criteria.sort,
             }}
             errors={filterErrors}
-            sortOptions={SORT_OPTIONS.map((value) => ({ value, label: SORT_LABELS[value] }))}
           />
         </aside>
 
         <section aria-labelledby="results-heading" className="min-w-0 space-y-4">
           <div>
-            <h2 id="results-heading" className="text-lg font-semibold text-slate-900" data-testid="result-count">
-              {result.resultCount} vehicle{result.resultCount === 1 ? "" : "s"} available
+            <h2 id="results-heading" className="text-3xl font-bold text-gray-900" data-testid="result-count">
+              {result.resultCount} vehicle{result.resultCount === 1 ? "" : "s"} found
             </h2>
-            <p className="text-sm text-slate-600">
-              {applied.join(" · ")} · Sorted by {SORT_LABELS[criteria.sort].toLowerCase()} · Checked{" "}
-              {formatDateTime(result.searchedAt, criteria.timeZone)} in {result.durationMs} ms
-            </p>
+            <p className="mt-1 text-[0.95rem] text-gray-500">{applied.join(" · ")}</p>
           </div>
+
+          <nav aria-label="Sort results" className="flex flex-wrap items-center gap-2.5">
+            <span className="text-[0.95rem] text-gray-500">Sort by</span>
+            {SORT_OPTIONS.map((option) => {
+              const active = criteria.sort === option;
+              return (
+                <Link
+                  key={option}
+                  href={hrefWith({ sort: option })}
+                  aria-current={active ? "true" : undefined}
+                  className={`rounded-lg border px-4 py-2 text-[0.95rem] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                    active ? "border-brand bg-brand font-bold text-white" : "border-gray-200 bg-white text-gray-900 hover:border-brand"
+                  }`}
+                >
+                  {SORT_CHIPS[option]}
+                </Link>
+              );
+            })}
+          </nav>
 
           {!validation.ok && (
             <Notice tone="warning" title="Some filters were not applied">
@@ -135,15 +158,15 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           ))}
 
           {!result.allSourcesFailed && result.resultCount === 0 && (
-            <div className={`${cardCls} p-6`} data-testid="empty-results">
-              <h3 className="text-base font-semibold text-slate-900">No vehicles match this search</h3>
-              <p className="mt-1 text-sm text-slate-700">
+            <div className={`${cardCls} p-8`} data-testid="empty-results">
+              <h3 className="text-xl font-bold text-gray-900">No vehicles match your filters</h3>
+              <p className="mt-1 text-gray-600">
                 Try different dates, a wider radius, or fewer filters. Vehicles already reserved for these dates are not shown.
               </p>
             </div>
           )}
 
-          <ul className="space-y-3">
+          <ul className="space-y-4">
             {result.listings.map((listing) => (
               <VehicleCard key={listing.id} listing={listing} trip={trip} />
             ))}
@@ -151,11 +174,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
           {result.pageCount > 1 && (
             <nav aria-label="Result pages" className="flex items-center justify-between">
-              {result.page > 1 ? <Link className={btnSecondary} href={pageHref(result.page - 1)}>Previous</Link> : <span />}
-              <span className="text-sm text-slate-700">Page {result.page} of {result.pageCount}</span>
-              {result.page < result.pageCount ? <Link className={btnSecondary} href={pageHref(result.page + 1)}>Next</Link> : <span />}
+              {result.page > 1 ? <Link className={btnSecondary} href={hrefWith({ page: String(result.page - 1) })}>Previous</Link> : <span />}
+              <span className="text-[0.95rem] text-gray-600">Page {result.page} of {result.pageCount}</span>
+              {result.page < result.pageCount ? <Link className={btnSecondary} href={hrefWith({ page: String(result.page + 1) })}>Next</Link> : <span />}
             </nav>
           )}
+
+          <CompareTray />
         </section>
       </div>
     </main>

@@ -18,14 +18,14 @@ Levels: U = `tests/unit`, I = `tests/integration`, E = `tests/e2e` (real browser
 | TC-B02 | Booking retrievable after refresh | Pass | I, E |
 | TC-B03 | CUSTOMER-02 overlap Dec 11–14 denied | Pass | I |
 | TC-B04 | Duplicate submit yields one booking | Pass | I |
-| TC-P01 | Partner listing submission goes to pending review, public after approval | Pass | I, E |
+| TC-P01 | Partner listing saved with all values. Deviation: it is "Pending review" and public only after admin approval, not published immediately as the test plan says (Q-17). Photo upload step not built. | Partial | I, E |
 | TC-P02 | Rate edit $60 → $65 persists | Pass | I, E |
 | TC-P03 | Missing daily rate rejected | Pass | I, E |
 | TC-P04 | Negative daily rate rejected | Pass | I, E |
 | TC-FR01 | SUV filter gives Equinox, RAV4, CR-V | Pass (logic only) | U; not run in a browser against the Sanjay seed |
 | TC-FR02 | Clear gives seven | Pass (logic only) | U |
 | TC-FR03 | Max $100 + seven seats gives Sienna | Pass (logic only) | U |
-| TC-FR04 | Invalid seats restored with message; 15 seats + $100 gives none | Pass | U (logic), E (seats restore, on Mateo data) |
+| TC-FR03/04 | Invalid seats (0, 16, 2.5) rejected with message and restored, results unchanged; buttons clamp at 1 and 15; 15 seats + $100 gives none | Pass | U (logic), E (typed 16 and 2.5 with Apply, on Mateo data). Note: this file numbers the FR cases as the handoff did; the test plan's FR02–FR04 map to the rows above. |
 | TC-PT01 | RAV4 daily/total breakdown ($356.40) | Pass (calculation only) | U; page not checked against Sanjay seed |
 | TC-PT02 | Fee policy shown | Not run | Conditional charges are displayed, no test asserts them |
 | TC-PT03a | 30-day rental accepted | Pass | U |

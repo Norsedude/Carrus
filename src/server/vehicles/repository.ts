@@ -11,7 +11,8 @@ const VEHICLE_SELECT = `
   booking_mode, cancellation_policy, lifecycle_status, updated_at, partner_id,
   partner:partners!inner (id, display_name, kind, verification_status),
   policy:pricing_policies!inner (id, key, version, formula),
-  provider:providers!inner (adapter_key, name, capability, is_mock)
+  provider:providers!inner (adapter_key, name, capability, is_mock),
+  photos:vehicle_photos (storage_path, is_primary, position)
 `;
 
 export type VehicleRow = {
@@ -38,7 +39,14 @@ export type VehicleRow = {
   partner: { id: string; display_name: string; kind: string; verification_status: string };
   policy: { id: string; key: string; version: number; formula: unknown };
   provider: { adapter_key: string; name: string; capability: string; is_mock: boolean };
+  photos: { storage_path: string; is_primary: boolean; position: number }[];
 };
+
+/** Primary photo path, else the first by position, else null. */
+export function primaryPhoto(row: Pick<VehicleRow, "photos">): string | null {
+  const photos = [...(row.photos ?? [])].sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.position - b.position);
+  return photos[0]?.storage_path ?? null;
+}
 
 export function policyFromRow(row: VehicleRow["policy"]): PricingPolicy {
   return { id: row.id, key: row.key, version: row.version, formula: row.formula as PolicyFormula };
@@ -67,6 +75,7 @@ export function toListing(row: VehicleRow, pickupAt: Date, returnAt: Date): Vehi
     coordinates: { lat: row.latitude, lng: row.longitude },
     timeZone: row.time_zone,
     distanceMiles: null,
+    photoUrl: primaryPhoto(row),
     dailyRateCents: row.daily_rate_cents,
     pricingPolicyId: row.policy.id,
     partner: {
@@ -109,4 +118,16 @@ export async function getVehicleRow(db: Db, id: string): Promise<VehicleRow | nu
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const rows = await getVehicleRows(db, [id]);
   return rows[0] ?? null;
+}
+
+/** Published listings as visible to the given client, newest first (home page). */
+export async function listPublishedRows(db: Db, limit: number): Promise<VehicleRow[]> {
+  const { data, error } = await db
+    .from("vehicles")
+    .select(VEHICLE_SELECT)
+    .eq("lifecycle_status", "published")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`vehicle lookup failed: ${error.message}`);
+  return (data ?? []) as unknown as VehicleRow[];
 }

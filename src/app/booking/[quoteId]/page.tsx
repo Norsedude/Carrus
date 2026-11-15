@@ -63,7 +63,7 @@ export default async function BookingReviewPage({ params }: { params: Promise<{ 
           {status === "ok" && (
             <>
               <Link href={`/checkout/${quote.id}`} className={`${btnPrimary} w-full`}>Continue to checkout</Link>
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-gray-600">
                 {user ? "" : "You will be asked to sign in or create an account first; your selection is kept. "}
                 Price confirmed just now and held until {formatDateTime(quote.expiresAt, v.timeZone)}. Availability is
                 checked again when you pay.

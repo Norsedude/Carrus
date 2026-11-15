@@ -27,13 +27,13 @@ export default async function TripPage({ params }: { params: Promise<{ id: strin
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="space-y-4">
           <div className={`${cardCls} space-y-4 p-5`}>
-            <p className="flex items-center gap-2 text-sm text-slate-700">Status: <StateBadge state={b.state} /></p>
+            <p className="flex items-center gap-2 text-sm text-gray-700">Status: <StateBadge state={b.state} /></p>
             <TripSummary vehicle={v} pickupAt={b.pickup_at} returnAt={b.return_at} />
-            <p className="text-sm text-slate-700">Driver: {b.contact_name} · {b.contact_phone}</p>
+            <p className="text-sm text-gray-700">Driver: {b.contact_name} · {b.contact_phone}</p>
           </div>
           <section className={`${cardCls} p-5`} aria-labelledby="timeline-heading">
-            <h2 id="timeline-heading" className="text-base font-semibold text-slate-900">Timeline</h2>
-            <ol className="mt-2 list-inside list-decimal space-y-1 text-sm text-slate-700">
+            <h2 id="timeline-heading" className="text-base font-semibold text-gray-900">Timeline</h2>
+            <ol className="mt-2 list-inside list-decimal space-y-1 text-sm text-gray-700">
               <li>Reservation created on {formatDateTime(b.created_at, v.timeZone)}</li>
             </ol>
           </section>

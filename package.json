@@ -16,6 +16,7 @@
     "db:migrate": "supabase migration up --local",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
+    "seed:demo": "tsx scripts/seed.ts demo",
     "seed:mateo": "tsx scripts/seed.ts mateo",
     "seed:sanjay": "tsx scripts/seed.ts sanjay",
     "test:reset": "tsx scripts/seed.ts reset"
@@ -23,6 +24,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
+    "lucide-react": "^1.73.0",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",

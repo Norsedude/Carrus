@@ -44,6 +44,7 @@ export const demoExternalAdapter: ProviderAdapter = {
         coordinates: offsetByMiles(SJC, d.miles, d.bearing),
         timeZone: "America/Los_Angeles",
         distanceMiles: null,
+        photoUrl: null,
         dailyRateCents: d.dailyCents,
         pricingPolicyId: null,
         partner: null,

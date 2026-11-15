@@ -39,13 +39,13 @@ export function CheckoutForm({
       )}
 
       <fieldset className="space-y-4">
-        <legend className="text-base font-semibold text-slate-900">Driver contact</legend>
+        <legend className="text-base font-semibold text-gray-900">Driver contact</legend>
         <Field label="Full name" name="contactName" autoComplete="name" defaultValue={state.values.contactName} error={e.contactName} />
         <Field label="Mobile phone" name="contactPhone" type="tel" autoComplete="tel" defaultValue={state.values.contactPhone} error={e.contactPhone} hint="Shared with the rental partner for this reservation." />
       </fieldset>
 
       <fieldset className="space-y-4">
-        <legend className="text-base font-semibold text-slate-900">Payment (demo)</legend>
+        <legend className="text-base font-semibold text-gray-900">Payment (demo)</legend>
         <Notice tone="warning" title="Simulated payment. No real charge is made.">
           Do not enter a real card. Use a test card: <code className="font-mono">4242 4242 4242 4242</code> approves,{" "}
           <code className="font-mono">4000 0000 0000 0002</code> declines,{" "}
@@ -61,8 +61,8 @@ export function CheckoutForm({
       </fieldset>
 
       <div>
-        <label className="flex items-start gap-2 text-sm text-slate-800">
-          <input type="checkbox" name="terms" className="mt-0.5 size-4 accent-blue-700" aria-invalid={e.terms ? true : undefined} aria-describedby={e.terms ? "terms-error" : undefined} />
+        <label className="flex items-start gap-2 text-sm text-gray-800">
+          <input type="checkbox" name="terms" className="mt-0.5 size-4 accent-brand" aria-invalid={e.terms ? true : undefined} aria-describedby={e.terms ? "terms-error" : undefined} />
           <span>
             I have reviewed the price, the cancellation policy and the charges that can apply at return, and I agree to the
             rental terms for this prototype.
@@ -77,7 +77,7 @@ export function CheckoutForm({
         </button>
         <Link href={backHref} className={btnSecondary}>Cancel</Link>
       </div>
-      <p role="status" className="text-sm text-slate-600">{pending ? "Processing your simulated payment. Please do not close this page." : ""}</p>
+      <p role="status" className="text-sm text-gray-600">{pending ? "Processing your simulated payment. Please do not close this page." : ""}</p>
     </form>
   );
 }

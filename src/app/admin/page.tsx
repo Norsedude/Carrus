@@ -25,7 +25,7 @@ function ReviewButtons({
     <form action={action} className="mt-3 flex flex-wrap items-end gap-2">
       <input type="hidden" name={idName} value={id} />
       <div className="min-w-48 flex-1">
-        <label htmlFor={`reason-${id}`} className="mb-1 block text-xs font-medium text-slate-700">
+        <label htmlFor={`reason-${id}`} className="mb-1 block text-xs font-medium text-gray-700">
           Reason (required to reject)
         </label>
         <input id={`reason-${id}`} name="reason" className={inputCls} />
@@ -71,7 +71,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         )}
 
         <section aria-labelledby="partners-heading">
-          <h2 id="partners-heading" className="mb-3 text-lg font-semibold text-slate-900">
+          <h2 id="partners-heading" className="mb-3 text-lg font-semibold text-gray-900">
             Partner applications awaiting review ({partners?.length ?? 0})
           </h2>
           {partners?.length ? (
@@ -79,8 +79,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               {partners.map((p) => {
                 const app = Array.isArray(p.partner_applications) ? p.partner_applications[0] : p.partner_applications;
                 return (
-                  <li key={p.id} className={`${cardCls} p-4 text-sm text-slate-700`} data-testid="pending-partner" data-name={p.display_name}>
-                    <p className="text-base font-semibold text-slate-900">{p.display_name}</p>
+                  <li key={p.id} className={`${cardCls} p-4 text-sm text-gray-700`} data-testid="pending-partner" data-name={p.display_name}>
+                    <p className="text-base font-semibold text-gray-900">{p.display_name}</p>
                     <p>
                       {p.kind === "company" ? "Company" : "Individual"} · applied {formatDateTime(p.created_at, TZ)}
                     </p>
@@ -98,12 +98,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               })}
             </ul>
           ) : (
-            <p className={`${cardCls} p-4 text-sm text-slate-700`}>No applications are waiting.</p>
+            <p className={`${cardCls} p-4 text-sm text-gray-700`}>No applications are waiting.</p>
           )}
         </section>
 
         <section aria-labelledby="listings-heading">
-          <h2 id="listings-heading" className="mb-3 text-lg font-semibold text-slate-900">
+          <h2 id="listings-heading" className="mb-3 text-lg font-semibold text-gray-900">
             Listings awaiting review ({listings?.length ?? 0})
           </h2>
           {listings?.length ? (
@@ -111,8 +111,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               {listings.map((v) => {
                 const partner = Array.isArray(v.partner) ? v.partner[0] : v.partner;
                 return (
-                  <li key={v.id} className={`${cardCls} p-4 text-sm text-slate-700`} data-testid="pending-listing" data-code={v.public_code}>
-                    <p className="text-base font-semibold text-slate-900">
+                  <li key={v.id} className={`${cardCls} p-4 text-sm text-gray-700`} data-testid="pending-listing" data-code={v.public_code}>
+                    <p className="text-base font-semibold text-gray-900">
                       {v.year} {v.make} {v.model}
                     </p>
                     <p>
@@ -128,26 +128,26 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               })}
             </ul>
           ) : (
-            <p className={`${cardCls} p-4 text-sm text-slate-700`}>No listings are waiting.</p>
+            <p className={`${cardCls} p-4 text-sm text-gray-700`}>No listings are waiting.</p>
           )}
         </section>
 
         <section aria-labelledby="audit-heading">
-          <h2 id="audit-heading" className="mb-3 text-lg font-semibold text-slate-900">Recent audit events</h2>
+          <h2 id="audit-heading" className="mb-3 text-lg font-semibold text-gray-900">Recent audit events</h2>
           {audit?.length ? (
-            <ul className={`${cardCls} divide-y divide-slate-100 text-sm text-slate-700`}>
+            <ul className={`${cardCls} divide-y divide-gray-100 text-sm text-gray-700`}>
               {audit.map((a) => (
                 <li key={a.id} className="flex flex-wrap justify-between gap-2 px-4 py-2">
                   <span>
-                    <span className="font-medium text-slate-900">{a.action}</span> on {a.target_type}
+                    <span className="font-medium text-gray-900">{a.action}</span> on {a.target_type}
                     {a.reason ? `: ${a.reason}` : ""}
                   </span>
-                  <span className="text-slate-600">{formatDateTime(a.created_at, TZ)}</span>
+                  <span className="text-gray-600">{formatDateTime(a.created_at, TZ)}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className={`${cardCls} p-4 text-sm text-slate-700`}>No events recorded yet.</p>
+            <p className={`${cardCls} p-4 text-sm text-gray-700`}>No events recorded yet.</p>
           )}
         </section>
 

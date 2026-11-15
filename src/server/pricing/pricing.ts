@@ -85,15 +85,16 @@ export function calculatePrice(input: {
   const taxCents = Math.round((subtotal * f.taxRateBps) / 10000);
   const totalCents = subtotal + taxCents;
 
+  const rateLabel = dailyRateCents % 100 === 0 ? `$${dailyRateCents / 100}` : `$${(dailyRateCents / 100).toFixed(2)}`;
   const lines: PriceLine[] = [
-    { code: "base", label: `${days} day${days === 1 ? "" : "s"} × daily rate`, cents: baseCents },
+    { code: "base", label: `Base rate (${days} day${days === 1 ? "" : "s"} × ${rateLabel})`, cents: baseCents },
     ...f.flatFees.map((fee) => ({ code: fee.code, label: fee.label, cents: fee.cents })),
   ];
   if (protectionCents > 0) {
-    lines.push({ code: "protection", label: "Protection plan", cents: protectionCents });
+    lines.push({ code: "protection", label: "Protection", cents: protectionCents });
   }
   if (f.taxRateBps > 0) {
-    lines.push({ code: "tax", label: `Tax (${f.taxRateBps / 100}%)`, cents: taxCents });
+    lines.push({ code: "tax", label: "Taxes and fees", cents: taxCents });
   }
 
   return {

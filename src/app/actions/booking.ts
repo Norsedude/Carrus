@@ -107,7 +107,7 @@ export async function checkoutAction(prev: CheckoutState, form: FormData): Promi
   const next = { idempotencyKey: randomUUID(), fieldErrors: {}, values };
   switch (outcome.status) {
     case "payment_failed":
-      return { ...next, tone: "error", message: "The demo payment was declined. No booking was created and nothing was charged. You can try another test card." };
+      return { ...next, tone: "error", message: "Your card was declined. No reservation was created and nothing was charged. You can try another test card." };
     case "unavailable":
       return { ...next, blocked: true, tone: "error", message: "This vehicle was just reserved by someone else for these dates. You have not been charged." };
     case "expired_refunded":

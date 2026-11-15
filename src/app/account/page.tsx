@@ -24,15 +24,15 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         {denied && <Notice tone="error">Your account does not have access to that page.</Notice>}
         <div className="grid gap-6 lg:grid-cols-2">
           <section className={`${cardCls} p-5`} aria-labelledby="profile-heading">
-            <h2 id="profile-heading" className="text-base font-semibold text-slate-900">Profile</h2>
-            <p className="mb-4 mt-1 text-sm text-slate-700">
+            <h2 id="profile-heading" className="text-base font-semibold text-gray-900">Profile</h2>
+            <p className="mb-4 mt-1 text-sm text-gray-700">
               Signed in as <span className="font-medium" data-testid="account-email">{user.email}</span>
             </p>
             <ProfileForm displayName={profile?.display_name ?? ""} phone={profile?.phone ?? ""} />
           </section>
           <div className="space-y-6">
             <section className={`${cardCls} p-5`} aria-labelledby="access-heading">
-              <h2 id="access-heading" className="text-base font-semibold text-slate-900">Access</h2>
+              <h2 id="access-heading" className="text-base font-semibold text-gray-900">Access</h2>
               <p className="mt-2 flex flex-wrap gap-1.5">
                 {user.roles.map((r) => (
                   <Badge key={r} tone="blue">{r}</Badge>
@@ -53,7 +53,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
               </ul>
             </section>
             <section className={`${cardCls} p-5`} aria-labelledby="security-heading">
-              <h2 id="security-heading" className="text-base font-semibold text-slate-900">Security</h2>
+              <h2 id="security-heading" className="text-base font-semibold text-gray-900">Security</h2>
               <p className="mt-2 text-sm"><Link href="/forgot-password" className={linkCls}>Send me a password reset link</Link></p>
               <form action={logoutAction} className="mt-4">
                 <button type="submit" className={btnSecondary}>Sign out</button>

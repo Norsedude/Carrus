@@ -31,6 +31,7 @@ export type VehicleSnapshot = {
   partnerName: string;
   bookingMode: string;
   cancellationPolicy: string;
+  photoUrl?: string | null;
 };
 
 export type QuoteRecord = {
@@ -85,6 +86,7 @@ export async function createQuote(
     partnerName: row.partner.display_name,
     bookingMode: row.booking_mode,
     cancellationPolicy: row.cancellation_policy,
+    photoUrl: listing.photoUrl,
   };
   const { data, error } = await admin
     .from("quotes")

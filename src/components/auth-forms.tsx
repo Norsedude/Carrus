@@ -29,10 +29,10 @@ export function LoginForm({ next }: { next: string }) {
       <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state.values.email} error={state.fieldErrors.email} />
       <Field label="Password" name="password" type="password" autoComplete="current-password" error={state.fieldErrors.password} />
       <button type="submit" disabled={pending} className={`${btnPrimary} w-full`}>{pending ? "Signing in…" : "Sign in"}</button>
-      <p className="text-sm text-slate-700">
+      <p className="text-sm text-gray-700">
         <Link href="/forgot-password" className={linkCls}>Forgot your password?</Link>
       </p>
-      <p className="text-sm text-slate-700">
+      <p className="text-sm text-gray-700">
         New to Carrus? <Link href={withNext("/signup")} className={linkCls}>Create an account</Link>
       </p>
     </form>
@@ -49,7 +49,7 @@ export function SignupForm({ next }: { next: string }) {
       <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state.values.email} error={state.fieldErrors.email} />
       <Field label="Password" name="password" type="password" autoComplete="new-password" error={state.fieldErrors.password} hint="At least 8 characters." />
       <button type="submit" disabled={pending} className={`${btnPrimary} w-full`}>{pending ? "Creating account…" : "Create account"}</button>
-      <p className="text-sm text-slate-700">
+      <p className="text-sm text-gray-700">
         Already have an account? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className={linkCls}>Sign in</Link>
       </p>
     </form>
@@ -63,7 +63,7 @@ export function ForgotPasswordForm() {
       <Message state={state} />
       <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state.values.email} error={state.fieldErrors.email} />
       <button type="submit" disabled={pending} className={`${btnPrimary} w-full`}>{pending ? "Sending…" : "Send reset link"}</button>
-      <p className="text-sm text-slate-700"><Link href="/login" className={linkCls}>Back to sign in</Link></p>
+      <p className="text-sm text-gray-700"><Link href="/login" className={linkCls}>Back to sign in</Link></p>
     </form>
   );
 }

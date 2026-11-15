@@ -36,13 +36,13 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
         </Notice>
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
           <div className={`${cardCls} space-y-4 p-5`}>
-            <p className="flex items-center gap-2 text-sm text-slate-700">Status: <StateBadge state={booking.state} /></p>
+            <p className="flex items-center gap-2 text-sm text-gray-700">Status: <StateBadge state={booking.state} /></p>
             <TripSummary vehicle={booking.vehicle_snapshot as unknown as VehicleSnapshot} pickupAt={booking.pickup_at} returnAt={booking.return_at} />
-            <p className="text-sm text-slate-700">Driver: {booking.contact_name} · {booking.contact_phone}</p>
+            <p className="text-sm text-gray-700">Driver: {booking.contact_name} · {booking.contact_phone}</p>
           </div>
           <aside className={`${cardCls} h-fit space-y-4 p-5`}>
             <PriceBreakdownView price={booking.price_snapshot as unknown as PriceBreakdown} heading="Price you agreed to" />
-            <p className="text-sm text-slate-700" data-testid="payment-line">
+            <p className="text-sm text-gray-700" data-testid="payment-line">
               {paid
                 ? `Simulated payment of ${formatCents(paid.amount_cents)} recorded (demo, no real charge). Reference ${paid.provider_ref}.`
                 : "No payment is recorded for this reservation (fixture data)."}

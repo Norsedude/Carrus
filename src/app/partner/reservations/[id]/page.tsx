@@ -25,12 +25,12 @@ export default async function PartnerReservationPage({ params }: { params: Promi
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="space-y-4">
           <div className={`${cardCls} space-y-4 p-5`}>
-            <p className="flex items-center gap-2 text-sm text-slate-700">
+            <p className="flex items-center gap-2 text-sm text-gray-700">
               Status: <StateBadge state={b.state} />
             </p>
             <TripSummary vehicle={b.vehicle_snapshot as unknown as VehicleSnapshot} pickupAt={b.pickup_at} returnAt={b.return_at} />
-            <p className="text-sm text-slate-700">
-              Driver contact: <span className="font-medium text-slate-900">{b.contact_name || "Not provided"}</span>
+            <p className="text-sm text-gray-700">
+              Driver contact: <span className="font-medium text-gray-900">{b.contact_name || "Not provided"}</span>
               {b.contact_phone ? ` · ${b.contact_phone}` : ""}
             </p>
           </div>

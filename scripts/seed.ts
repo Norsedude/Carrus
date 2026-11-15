@@ -4,6 +4,7 @@
  *   npm run seed:mateo              four SJC vehicles (TC-S / TC-C / TC-B / TC-P)
  *   npm run seed:mateo -- --with-reservation    also creates RES-TEST-001
  *   npm run seed:sanjay             seven San Jose vehicles (TC-FR / TC-PT)
+ *   npm run seed:demo               six photographed showcase vehicles, available for the next year
  *   npm run test:reset              remove all app data and fixture users
  *
  * Each seed command resets first, so profiles never mix. The script refuses to
@@ -132,13 +133,16 @@ async function lookups() {
 
 type VehicleSeed = {
   code: string; make: string; model: string; year: number; color: string;
-  type: "Sedan" | "SUV" | "Minivan" | "Van" | "Truck"; seats: number; daily: number;
+  type: "Sedan" | "SUV" | "Sports" | "Luxury" | "Minivan" | "Van" | "Truck"; seats: number; daily: number;
   miles: number; bearing: number; windowEnd: string; description: string;
+  /** Public path under /public, e.g. /vehicles/ford-mustang.jpg */
+  photo?: string; transmission?: "Automatic" | "Manual";
 };
 
 async function insertVehicles(
   partnerId: string, providerId: string, policyId: string, label: string,
   origin: { lat: number; lng: number }, windowStart: string, vehicles: VehicleSeed[],
+  windowStartAt?: Date, windowEndAt?: Date,
 ) {
   const out: Record<string, string> = {};
   for (const v of vehicles) {
@@ -147,7 +151,7 @@ async function insertVehicles(
       db.from("vehicles").insert({
         public_code: v.code, partner_id: partnerId, provider_id: providerId,
         make: v.make, model: v.model, year: v.year, color: v.color, vehicle_type: v.type,
-        seats: v.seats, description: v.description, location_label: label,
+        seats: v.seats, transmission: v.transmission ?? "Automatic", description: v.description, location_label: label,
         latitude: at.lat, longitude: at.lng, time_zone: TZ, daily_rate_cents: v.daily * 100,
         pricing_policy_id: policyId, booking_mode: "instant", lifecycle_status: "published",
         approved_at: new Date().toISOString(),
@@ -156,8 +160,13 @@ async function insertVehicles(
     );
     out[v.code] = row!.id;
     await must(db.from("availability_windows").insert({
-      vehicle_id: row!.id, start_at: local(windowStart).toISOString(), end_at: local(v.windowEnd).toISOString(),
+      vehicle_id: row!.id,
+      start_at: (windowStartAt ?? local(windowStart)).toISOString(),
+      end_at: (windowEndAt ?? local(v.windowEnd)).toISOString(),
     }), `window ${v.code}`);
+    if (v.photo) {
+      await must(db.from("vehicle_photos").insert({ vehicle_id: row!.id, storage_path: v.photo, position: 0, is_primary: true }), `photo ${v.code}`);
+    }
   }
   return out;
 }
@@ -228,6 +237,34 @@ export async function seedSanjay() {
   return { ids, partnerId, vehicles };
 }
 
+/**
+ * Showcase profile for demos. Original mock listings modeled on the vehicles
+ * in the team's Figma mockup, with that file's photos. Hosts are fictional.
+ * Available from today for one year so the home page's default dates work.
+ */
+export async function seedDemo() {
+  await reset();
+  const ids = await seedUsers();
+  const { providerId, protection } = await lookups();
+  const fleet = await seedPartner(ids.partner1, "Bay Area Rides", "company", `test.partner${FIXTURE_DOMAIN}`);
+  const host = await seedPartner(ids.partner2, "Second Street Cars", "individual", `test.partner2${FIXTURE_DOMAIN}`);
+  const sanJose = { lat: 37.3382, lng: -121.8863 };
+  const start = new Date(new Date().setUTCHours(0, 0, 0, 0));
+  const end = new Date(start.getTime() + 365 * 86_400_000);
+  const base = { windowEnd: "" };
+  const hostCars = await insertVehicles(host, providerId, protection.id, "San Jose, CA", sanJose, "", [
+    { ...base, code: "CR-MUSTANG", make: "Ford", model: "Mustang", year: 2024, color: "Gray", type: "Sports", seats: 4, daily: 46, miles: 0.7, bearing: 35, photo: "/vehicles/ford-mustang.jpg", description: "Dark Horse trim in carbonized gray. A weekend coupe with a usable trunk and Apple CarPlay." },
+    { ...base, code: "CR-720S", make: "McLaren", model: "720S", year: 2026, color: "White", type: "Luxury", seats: 2, daily: 561, miles: 4.8, bearing: 150, photo: "/vehicles/mclaren-720s.jpg", description: "Two-seat supercar in pearl white. Delivered with a walkthrough of the controls at pickup." },
+    { ...base, code: "CR-DEFENDER", make: "Land Rover", model: "Defender", year: 2025, color: "Green", type: "SUV", seats: 5, daily: 189, miles: 3.2, bearing: 250, photo: "/vehicles/land-rover-defender.jpg", description: "Defender 110 with all-terrain tires and a roof rack. Suited to mountain and coast trips." },
+  ], start, end);
+  const fleetCars = await insertVehicles(fleet, providerId, protection.id, "San Jose, CA", sanJose, "", [
+    { ...base, code: "CR-M2", make: "BMW", model: "M2", year: 2025, color: "Blue", type: "Sports", seats: 4, daily: 129, miles: 2.1, bearing: 95, photo: "/vehicles/bmw-m2.jpg", description: "Compact performance coupe in Portimao blue with an automatic gearbox." },
+    { ...base, code: "CR-LANDCRUISER", make: "Toyota", model: "Land Cruiser", year: 2024, color: "Silver", type: "SUV", seats: 7, daily: 98, miles: 1.4, bearing: 200, photo: "/vehicles/toyota-land-cruiser.jpg", description: "Three-row SUV with four-wheel drive. Room for seven and their luggage." },
+    { ...base, code: "CR-EXPLORER", make: "Ford", model: "Explorer", year: 2024, color: "White", type: "SUV", seats: 7, daily: 84, miles: 2.0, bearing: 310, photo: "/vehicles/ford-explorer.jpg", description: "Seven-seat family SUV with a power liftgate and adaptive cruise control." },
+  ], start, end);
+  return { ids, vehicles: { ...hostCars, ...fleetCars } };
+}
+
 async function main() {
   const [command, ...flags] = process.argv.slice(2);
   if (command === "mateo") {
@@ -236,11 +273,14 @@ async function main() {
   } else if (command === "sanjay") {
     await seedSanjay();
     console.log("Seeded Sanjay profile (search inventory; reservations #1001-#1011 are not implemented yet).");
+  } else if (command === "demo") {
+    await seedDemo();
+    console.log("Seeded demo showcase profile (six photographed vehicles in San Jose, available for one year).");
   } else if (command === "reset") {
     await reset();
     console.log("Removed app data and fixture users.");
   } else {
-    console.error("Usage: tsx scripts/seed.ts <mateo [--with-reservation] | sanjay | reset>");
+    console.error("Usage: tsx scripts/seed.ts <demo | mateo [--with-reservation] | sanjay | reset>");
     process.exit(2);
   }
   if (command !== "reset") {

@@ -9,7 +9,7 @@ import { Field, Notice, btnDanger, btnPrimary, btnSecondary, inputCls } from "@/
 function SelectField({ label, name, options, value, error }: { label: string; name: string; options: { value: string; label: string }[]; value?: string; error?: string }) {
   return (
     <div>
-      <label htmlFor={`f-${name}`} className="mb-1 block text-sm font-medium text-slate-800">{label}</label>
+      <label htmlFor={`f-${name}`} className="mb-1 block text-sm font-medium text-gray-800">{label}</label>
       <select id={`f-${name}`} name={name} defaultValue={value ?? ""} className={inputCls} aria-invalid={error ? true : undefined} aria-describedby={error ? `f-${name}-error` : undefined}>
         <option value="" disabled>Choose…</option>
         {options.map((o) => (
@@ -34,7 +34,7 @@ export function FleetApplicationForm({ email }: { email: string }) {
       <Field label="Contact phone (optional)" name="contactPhone" type="tel" defaultValue={v.contactPhone} error={e.contactPhone} />
       <Field label="Vehicles you plan to list" name="fleetSize" inputMode="numeric" defaultValue={v.fleetSize} error={e.fleetSize} />
       <div>
-        <label htmlFor="f-notes" className="mb-1 block text-sm font-medium text-slate-800">Anything we should know (optional)</label>
+        <label htmlFor="f-notes" className="mb-1 block text-sm font-medium text-gray-800">Anything we should know (optional)</label>
         <textarea id="f-notes" name="notes" rows={3} defaultValue={v.notes} className={inputCls} />
         {e.notes && <p className="mt-1 text-sm font-medium text-red-700">{e.notes}</p>}
       </div>
@@ -85,7 +85,7 @@ export function VehicleForm({
         <Field label="Available until" name="availableUntil" type="datetime-local" defaultValue={v.availableUntil} error={e.availableUntil} />
       </div>
       <div>
-        <label htmlFor="f-description" className="mb-1 block text-sm font-medium text-slate-800">Description</label>
+        <label htmlFor="f-description" className="mb-1 block text-sm font-medium text-gray-800">Description</label>
         <textarea id="f-description" name="description" rows={3} defaultValue={v.description} className={inputCls} />
       </div>
       <Notice>

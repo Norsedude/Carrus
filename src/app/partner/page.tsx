@@ -48,29 +48,29 @@ export default async function PartnerDashboardPage({ searchParams }: { searchPar
             ["Booked revenue", formatCents(revenue)],
           ].map(([k, v]) => (
             <div key={k} className={`${cardCls} p-4`}>
-              <dt className="text-sm text-slate-600">{k}</dt>
-              <dd className="text-2xl font-bold tabular-nums text-slate-900">{v}</dd>
+              <dt className="text-sm text-gray-600">{k}</dt>
+              <dd className="text-2xl font-bold tabular-nums text-gray-900">{v}</dd>
             </div>
           ))}
         </dl>
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-gray-600">
           Booked revenue is the total of reservations paid with simulated payments. Payouts and the earnings ledger are not
           built yet; no money is owed or transferred.
         </p>
 
         <section aria-labelledby="fleet-heading">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 id="fleet-heading" className="text-lg font-semibold text-slate-900">Your vehicles</h2>
+            <h2 id="fleet-heading" className="text-lg font-semibold text-gray-900">Your vehicles</h2>
             <Link href="/partner/vehicles/new" className={btnPrimary}>Add a vehicle</Link>
           </div>
           {vehicles.length === 0 ? (
-            <p className={`${cardCls} p-5 text-sm text-slate-700`}>You have not listed a vehicle yet.</p>
+            <p className={`${cardCls} p-5 text-sm text-gray-700`}>You have not listed a vehicle yet.</p>
           ) : (
             <ul className="space-y-2">
               {vehicles.map((v) => (
                 <li key={v.id} className={`${cardCls} flex flex-wrap items-center justify-between gap-3 p-4`} data-testid="fleet-row" data-code={v.public_code}>
-                  <div className="text-sm text-slate-700">
-                    <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-slate-900">
+                  <div className="text-sm text-gray-700">
+                    <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-gray-900">
                       {v.year} {v.make} {v.model}
                       <StateBadge state={v.lifecycle_status} />
                       {out.has(v.id) && <StateBadge state="active" />}
@@ -85,24 +85,24 @@ export default async function PartnerDashboardPage({ searchParams }: { searchPar
         </section>
 
         <section aria-labelledby="reservations-heading">
-          <h2 id="reservations-heading" className="mb-3 text-lg font-semibold text-slate-900">Reservations</h2>
+          <h2 id="reservations-heading" className="mb-3 text-lg font-semibold text-gray-900">Reservations</h2>
           {bookings.length === 0 ? (
-            <p className={`${cardCls} p-5 text-sm text-slate-700`}>No reservations yet.</p>
+            <p className={`${cardCls} p-5 text-sm text-gray-700`}>No reservations yet.</p>
           ) : (
             <ul className="space-y-2">
               {bookings.map((b) => {
                 const v = b.vehicle_snapshot as unknown as VehicleSnapshot;
                 return (
                   <li key={b.id} className={`${cardCls} flex flex-wrap items-center justify-between gap-3 p-4`} data-testid="reservation-row" data-reference={b.reference}>
-                    <div className="text-sm text-slate-700">
-                      <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-slate-900">
+                    <div className="text-sm text-gray-700">
+                      <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-gray-900">
                         <Link href={`/partner/reservations/${b.id}`} className="underline-offset-2 hover:underline">{b.reference}</Link>
                         <StateBadge state={b.state} />
                       </p>
                       <p>{v.year} {v.make} {v.model} ({v.publicCode}) · {b.contact_name || "Customer"}</p>
                       <p>{formatDateTime(b.pickup_at, v.timeZone)} to {formatDateTime(b.return_at, v.timeZone)}</p>
                     </div>
-                    <p className="text-lg font-bold tabular-nums text-slate-900">{formatCents(b.total_cents)}</p>
+                    <p className="text-lg font-bold tabular-nums text-gray-900">{formatCents(b.total_cents)}</p>
                   </li>
                 );
               })}

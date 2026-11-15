@@ -34,7 +34,7 @@ npm ci
 npm run db:start          # starts local Supabase in Docker; first run downloads images
 cp .env.example .env.local
 npx supabase status       # copy the Publishable and Secret keys into .env.local
-npm run seed:mateo        # fixture vehicles and test accounts
+npm run seed:demo         # six photographed demo vehicles and test accounts
 npm run dev               # http://localhost:3000
 ```
 
@@ -58,7 +58,7 @@ All use the password `Test#1234`, which is public demo data from the test plan a
 | `test.partner2@carrus.test` | Verified partner with no vehicles (PARTNER-02) |
 | `test.admin@carrus.test` | Administrator |
 
-Try a search for **SJC**, pickup **Dec 10 2026 10:00**, return **Dec 13 2026 10:00**.
+With the demo seed, search **San Jose, CA** with the default dates. With `npm run seed:mateo` (the test-plan fixtures), search **SJC**, pickup **Dec 10 2026 10:00**, return **Dec 13 2026 10:00**.
 Demo payment cards: `4242 4242 4242 4242` approves, `4000 0000 0000 0002` declines.
 
 ## Commands
@@ -74,6 +74,7 @@ Demo payment cards: `4242 4242 4242 4242` approves, `4000 0000 0000 0002` declin
 | `npm run db:reset` | Recreate the local database from `supabase/migrations` |
 | `npm run db:migrate` | Apply new migrations to the local database |
 | `npm run db:types` | Regenerate `src/lib/supabase/database.types.ts` after a schema change |
+| `npm run seed:demo` | Reset, then seed six photographed showcase vehicles in San Jose, available for a year |
 | `npm run seed:mateo` | Reset, then seed four SJC vehicles. Add `-- --with-reservation` for RES-TEST-001 |
 | `npm run seed:sanjay` | Reset, then seed seven San Jose vehicles (January 2027 dates) |
 | `npm run test:reset` | Remove all app data and fixture accounts |

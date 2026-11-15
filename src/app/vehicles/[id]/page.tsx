@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft, Building2, Cog, MapPin, Palette, ShieldCheck, Tag, UserRound, Users } from "lucide-react";
 import { startBookingAction } from "@/app/actions/booking";
-import { VehicleArt } from "@/components/brand";
+import { VehicleImage } from "@/components/brand";
 import { CompareToggle } from "@/components/compare";
 import { CANCELLATION_TEXT, PriceBreakdownView } from "@/components/price";
-import { Badge, Field, Notice, btnPrimary, btnSecondary, cardCls, linkCls } from "@/components/ui";
+import { Badge, Field, Notice, btnPrimary, btnSecondary, cardCls } from "@/components/ui";
 import { vehicleName } from "@/components/vehicle-card";
 import { getNow } from "@/lib/clock";
 import { formatCents } from "@/lib/money";
@@ -13,7 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/time";
 import { distanceMiles, resolveLocation } from "@/server/search/location";
 import { validateDates, type RawParams } from "@/server/search/validator";
-import { availableVehicleIds, getVehicleRow, toListing } from "@/server/vehicles/repository";
+import { availableVehicleIds, getVehicleRow, primaryPhoto, toListing } from "@/server/vehicles/repository";
 
 export const metadata: Metadata = { title: "Vehicle details" };
 
@@ -36,80 +37,122 @@ export default async function VehiclePage({ params, searchParams }: { params: Pr
   const available = dates?.ok ? (await availableVehicleIds(db, dates.pickupAt, dates.returnAt)).includes(row.id) : null;
   const name = vehicleName(row);
   const isPublic = row.lifecycle_status === "published";
+  const verified = row.partner.verification_status === "verified";
+  const photo = primaryPhoto(row);
   const self = `/vehicles/${row.id}?${new URLSearchParams({ pickup, return: ret, location: locationText }).toString()}`;
   const backToSearch = `/search?${new URLSearchParams({ location: locationText || row.location_label, pickup, return: ret }).toString()}`;
+  const glance = [
+    { icon: Users, label: `${row.seats} seats` },
+    { icon: Tag, label: row.vehicle_type },
+    { icon: Cog, label: row.transmission },
+    { icon: Palette, label: row.color || "Color not listed" },
+  ];
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
       {dates?.ok && (
-        <p className="mb-3 text-sm">
-          <Link href={backToSearch} className={linkCls}>Back to results</Link>
+        <p className="mb-5">
+          <Link href={backToSearch} className="inline-flex items-center gap-2 text-[0.95rem] font-bold text-brand hover:text-brand-dark">
+            <ArrowLeft className="size-4" aria-hidden /> Back to search results
+          </Link>
         </p>
       )}
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{name}</h1>
+      <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl">
+        {row.make} {row.model}
+      </h1>
+      <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[0.95rem] text-gray-500">
+        <span>{row.year}</span>
+        <span className="inline-flex items-center gap-1.5">
+          {row.partner.kind === "company" ? <Building2 className="size-4 text-brand" aria-hidden /> : <UserRound className="size-4 text-brand" aria-hidden />}
+          {row.partner.display_name}
+        </span>
+        {verified && isPublic && <Badge tone="green">Verified listing</Badge>}
         <Badge tone="blue">Exact vehicle</Badge>
         {!isPublic && <Badge tone="amber">Not public: {row.lifecycle_status.replace("_", " ")}</Badge>}
-      </div>
-      <p className="mt-1 text-sm text-slate-600">Listing {row.public_code}</p>
+        <span>Listing {row.public_code}</span>
+      </p>
 
       {one(raw.problem) === "unavailable" && (
-        <div className="mt-4">
+        <div className="mt-5">
           <Notice tone="error" title="No longer available for these dates">
             Someone else reserved this vehicle, or its availability changed. Nothing was booked. Try other dates or another vehicle.
           </Notice>
         </div>
       )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="space-y-6">
-          <div className={`${cardCls} p-4`}>
-            <VehicleArt type={row.vehicle_type} color={row.color} className="mx-auto h-auto w-full max-w-md" />
-            <p className="mt-2 text-center text-xs text-slate-600">
-              Illustration only. Photo upload for listings is not built yet, so no photos of this vehicle are shown.
-            </p>
+      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_24rem]">
+        <div className="min-w-0 space-y-6">
+          <div>
+            <VehicleImage photoUrl={photo} name={name} type={row.vehicle_type} color={row.color} className="aspect-[16/10] w-full rounded-xl" sizes="(min-width: 1024px) 50rem, 100vw" priority />
+            {!photo && <p className="mt-2 text-sm text-gray-500">Illustration only. The host has not added photos of this vehicle yet.</p>}
           </div>
 
-          <section className={`${cardCls} p-5`} aria-labelledby="specs-heading">
-            <h2 id="specs-heading" className="text-base font-semibold text-slate-900">Vehicle</h2>
-            <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-              {[
-                ["Make", row.make], ["Model", row.model], ["Year", String(row.year)],
-                ["Color", row.color || "Not specified"], ["Type", row.vehicle_type], ["Seats", String(row.seats)],
-                ["Transmission", row.transmission], ["Daily rate", formatCents(row.daily_rate_cents)],
-                ["Booking", row.booking_mode === "instant" ? "Instant confirmation" : "Partner approval required"],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <dt className="text-slate-600">{k}</dt>
-                  <dd className="font-medium text-slate-900">{v}</dd>
-                </div>
+          <section aria-labelledby="glance-heading">
+            <h2 id="glance-heading" className="text-2xl font-bold text-gray-900">At a glance</h2>
+            <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {glance.map(({ icon: Icon, label }) => (
+                <li key={label} className={`${cardCls} p-4`}>
+                  <Icon className="size-5 text-brand" aria-hidden />
+                  <p className="mt-2 font-bold text-gray-900">{label}</p>
+                </li>
               ))}
-            </dl>
-            {row.description && <p className="mt-4 text-sm text-slate-700">{row.description}</p>}
+            </ul>
+            {row.description && <p className="mt-4 leading-relaxed text-gray-600">{row.description}</p>}
           </section>
 
-          <section className={`${cardCls} p-5`} aria-labelledby="where-heading">
-            <h2 id="where-heading" className="text-base font-semibold text-slate-900">Pickup location and partner</h2>
-            <p className="mt-2 text-sm text-slate-700">
-              {row.location_label}
-              {origin && ` · ${distanceMiles(origin.coordinates, { lat: row.latitude, lng: row.longitude }).toFixed(1)} miles (straight line) from ${origin.label}`}
-            </p>
-            <p className="mt-2 text-sm text-slate-700">
-              Offered by <span className="font-medium text-slate-900">{row.partner.display_name}</span>
-              {row.partner.verification_status === "verified" ? " · Verified partner (reviewed by a Carrus administrator)" : " · Not yet verified"}
-            </p>
-            <p className="mt-2 text-xs text-slate-500">Listing last updated {formatDateTime(row.updated_at, row.time_zone)}.</p>
+          <section className={`${cardCls} flex items-center gap-4 p-5`} aria-label="Host">
+            <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-soft text-xl font-bold text-brand">
+              {row.partner.display_name[0]}
+            </span>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                {row.partner.kind === "company" ? "Rented from" : "Hosted by"} {row.partner.display_name}
+              </h2>
+              <p className="text-[0.95rem] text-gray-500">
+                {verified ? "Verified Rental Partner, reviewed by a Carrus administrator" : "Not yet verified"} ·{" "}
+                {row.booking_mode === "instant" ? "Instant confirmation" : "Host approval required"}
+              </p>
+            </div>
           </section>
 
-          <section className={`${cardCls} p-5`} aria-labelledby="policy-heading">
-            <h2 id="policy-heading" className="text-base font-semibold text-slate-900">Cancellation</h2>
-            <p className="mt-2 text-sm text-slate-700">{CANCELLATION_TEXT[row.cancellation_policy] ?? row.cancellation_policy}</p>
+          {listing && (
+            <section className={`${cardCls} p-6`}>
+              <PriceBreakdownView price={listing.price} heading="Full price for your dates" />
+            </section>
+          )}
+
+          <section className={`${cardCls} p-6`} aria-labelledby="where-heading">
+            <h2 id="where-heading" className="text-2xl font-bold text-gray-900">Pickup and return location</h2>
+            <p className="mt-3 flex items-start gap-2 text-gray-900">
+              <MapPin className="mt-1 size-4 shrink-0 text-gray-500" aria-hidden />
+              <span>
+                {row.location_label}
+                {origin && ` · ${distanceMiles(origin.coordinates, { lat: row.latitude, lng: row.longitude }).toFixed(1)} mi (straight line) from ${origin.label}`}
+              </span>
+            </p>
+            <p className="mt-2 text-sm text-gray-500">Listing last updated {formatDateTime(row.updated_at, row.time_zone)}.</p>
           </section>
         </div>
 
-        <aside className={`${cardCls} h-fit space-y-4 p-5`}>
+        <aside className={`${cardCls} h-fit space-y-5 p-6 lg:sticky lg:top-24`}>
+          {listing ? (
+            <div className="border-b border-gray-200 pb-5">
+              <p className="text-4xl font-bold tabular-nums text-gray-900">
+                <span data-testid="headline-total">{formatCents(listing.price.totalCents)}</span> total
+              </p>
+              <p className="mt-1 text-[0.95rem] text-gray-500">
+                {formatCents(row.daily_rate_cents)}/day · {listing.price.billableDays} day{listing.price.billableDays === 1 ? "" : "s"} · taxes and fees included
+              </p>
+            </div>
+          ) : (
+            <div className="border-b border-gray-200 pb-5">
+              <p className="text-4xl font-bold tabular-nums text-gray-900">{formatCents(row.daily_rate_cents)}/day</p>
+              <p className="mt-1 text-[0.95rem] text-gray-500">Choose dates to see the full total.</p>
+            </div>
+          )}
+
           <form action={`/vehicles/${row.id}`} method="get" noValidate className="space-y-3">
-            <h2 className="text-base font-semibold text-slate-900">Your trip</h2>
+            <h2 className="text-xl font-bold text-gray-900">Your trip</h2>
             <input type="hidden" name="location" value={locationText} />
             <Field label="Pickup date and time" name="pickup" type="datetime-local" defaultValue={pickup} error={dates && !dates.ok ? dates.fieldErrors.pickup : undefined} />
             <Field label="Return date and time" name="return" type="datetime-local" defaultValue={ret} error={dates && !dates.ok ? dates.fieldErrors.return : undefined} />
@@ -117,20 +160,20 @@ export default async function VehiclePage({ params, searchParams }: { params: Pr
           </form>
 
           {listing && dates?.ok && (
-            <>
-              <hr className="border-slate-200" />
-              <PriceBreakdownView price={listing.price} />
+            <div className="space-y-3 border-t border-gray-200 pt-5">
               {available ? (
                 isPublic ? (
-                  <form action={startBookingAction} className="space-y-2">
+                  <form action={startBookingAction} className="space-y-3">
                     <input type="hidden" name="vehicleId" value={row.id} />
                     <input type="hidden" name="pickup" value={pickup} />
                     <input type="hidden" name="return" value={ret} />
                     <input type="hidden" name="location" value={locationText} />
                     <input type="hidden" name="back" value={self} />
-                    <p className="text-sm font-medium text-emerald-800" data-testid="availability">Available for these dates</p>
-                    <button type="submit" className={`${btnPrimary} w-full`}>Reserve this vehicle</button>
-                    <p className="text-xs text-slate-600">Next you will review the details. Nothing is booked or charged yet.</p>
+                    <button type="submit" className={`${btnPrimary} w-full py-3 text-base`}>Reserve this vehicle</button>
+                    <p className="flex items-center gap-2 text-[0.95rem] text-emerald-700" data-testid="availability">
+                      <ShieldCheck className="size-4" aria-hidden /> Available for these dates · {CANCELLATION_TEXT[row.cancellation_policy] ?? ""}
+                    </p>
+                    <p className="text-sm text-gray-500">Next you review the details. Nothing is booked or charged yet.</p>
                   </form>
                 ) : (
                   <Notice tone="warning">This listing is not public, so it cannot be reserved.</Notice>
@@ -140,8 +183,8 @@ export default async function VehiclePage({ params, searchParams }: { params: Pr
                   <span data-testid="availability">Choose different dates, or go back to the results for other vehicles.</span>
                 </Notice>
               )}
-              {isPublic && <CompareToggle id={row.id} name={name} pickup={pickup} ret={ret} location={locationText} />}
-            </>
+              {isPublic && <CompareToggle id={row.id} name={`${row.make} ${row.model}`} pickup={pickup} ret={ret} location={locationText} />}
+            </div>
           )}
         </aside>
       </div>

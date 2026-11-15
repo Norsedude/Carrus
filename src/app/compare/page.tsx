@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { startBookingAction } from "@/app/actions/booking";
-import { VehicleArt } from "@/components/brand";
+import { VehicleImage } from "@/components/brand";
 import { CompareRemove, CompareSync } from "@/components/compare";
 import { Notice, PageShell, btnPrimary, btnSecondary, cardCls } from "@/components/ui";
 import { vehicleHref, vehicleName } from "@/components/vehicle-card";
@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/time";
 import { distanceMiles, resolveLocation } from "@/server/search/location";
 import { validateDates, type RawParams } from "@/server/search/validator";
-import { availableVehicleIds, getVehicleRows, toListing } from "@/server/vehicles/repository";
+import { availableVehicleIds, getVehicleRows, primaryPhoto, toListing } from "@/server/vehicles/repository";
 
 export const metadata: Metadata = { title: "Compare vehicles" };
 
@@ -33,7 +33,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     return (
       <PageShell title="Compare vehicles" intro="Put up to three vehicles side by side for the same rental dates.">
         <div className={`${cardCls} p-6`}>
-          <p className="text-sm text-slate-700">
+          <p className="text-sm text-gray-700">
             You have not added any vehicles yet. Run a search, then choose “Add to compare” on up to three results.
           </p>
           <Link href="/#search" className={`${btnPrimary} mt-4`}>Search vehicles</Link>
@@ -89,7 +89,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       title="Compare vehicles"
       intro={`${formatDateTime(dates.pickupAt, tz)} to ${formatDateTime(dates.returnAt, tz)}${origin ? ` · near ${origin.label}` : ""}`}
     >
-      <CompareSync ids={shownIds} pickup={pickup} ret={ret} location={location} />
+      <CompareSync ids={shownIds} names={Object.fromEntries(columns.map((c) => [c.row.id, `${c.row.make} ${c.row.model}`]))} pickup={pickup} ret={ret} location={location} />
       <div className="space-y-3">
         {tooMany && (
           <Notice tone="warning" title="Only three vehicles can be compared">
@@ -107,15 +107,15 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       </div>
 
       <div className={`${cardCls} relative mt-4 overflow-x-auto`}>
-        <table className="w-full border-collapse text-sm" style={{ minWidth: `${9 + columns.length * 11}rem` }}>
+        <table className="w-full border-collapse text-sm" style={{ minWidth: `${9 + columns.length * 12}rem` }}>
           <caption className="sr-only">Side-by-side comparison of selected vehicles</caption>
           <thead>
             <tr>
               <td className="w-36 p-3" />
               {columns.map((c) => (
-                <th key={c.row.id} scope="col" className="sticky top-0 border-l border-slate-200 bg-white p-3 text-left align-top" data-testid="compare-column" data-code={c.row.public_code}>
-                  <VehicleArt type={c.row.vehicle_type} color={c.row.color} className="mb-2 h-auto w-full max-w-40" />
-                  <Link href={vehicleHref(c.row.id, trip)} className="text-base font-semibold text-slate-900 underline-offset-2 hover:underline">
+                <th key={c.row.id} scope="col" className="sticky top-0 border-l border-gray-200 bg-white p-3 text-left align-top" data-testid="compare-column" data-code={c.row.public_code}>
+                  <VehicleImage photoUrl={primaryPhoto(c.row)} name={vehicleName(c.row)} type={c.row.vehicle_type} color={c.row.color} className="mb-3 aspect-[3/2] w-full max-w-56" sizes="14rem" />
+                  <Link href={vehicleHref(c.row.id, trip)} className="text-xl font-bold text-gray-900 underline-offset-2 hover:underline">
                     {vehicleName(c.row)}
                   </Link>
                   <p className={`mt-1 text-xs font-semibold ${c.available ? "text-emerald-800" : "text-red-700"}`}>
@@ -127,40 +127,40 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           </thead>
           <tbody>
             {attr.map(([label, get]) => (
-              <tr key={label} className="border-t border-slate-200">
-                <th scope="row" className="p-3 text-left font-medium text-slate-600">{label}</th>
+              <tr key={label} className="border-t border-gray-200">
+                <th scope="row" className="p-3 text-left font-medium text-gray-600">{label}</th>
                 {columns.map((c) => (
-                  <td key={c.row.id} className="border-l border-slate-200 p-3 text-slate-900">{get(c)}</td>
+                  <td key={c.row.id} className="border-l border-gray-200 p-3 text-gray-900">{get(c)}</td>
                 ))}
               </tr>
             ))}
             {lineCodes.map((code) => (
-              <tr key={code} className="border-t border-slate-200">
-                <th scope="row" className="p-3 text-left font-medium text-slate-600">
+              <tr key={code} className="border-t border-gray-200">
+                <th scope="row" className="p-3 text-left font-medium text-gray-600">
                   {columns.map((c) => c.listing.price.lines.find((l) => l.code === code)?.label).find(Boolean)}
                 </th>
                 {columns.map((c) => {
                   const line = c.listing.price.lines.find((l) => l.code === code);
                   return (
-                    <td key={c.row.id} className="border-l border-slate-200 p-3 tabular-nums text-slate-900">
+                    <td key={c.row.id} className="border-l border-gray-200 p-3 tabular-nums text-gray-900">
                       {line ? formatCents(line.cents) : "Not charged"}
                     </td>
                   );
                 })}
               </tr>
             ))}
-            <tr className="border-t-2 border-slate-300 bg-slate-50">
-              <th scope="row" className="p-3 text-left font-semibold text-slate-900">Trip total</th>
+            <tr className="border-t-2 border-gray-300 bg-gray-50">
+              <th scope="row" className="p-3 text-left font-semibold text-gray-900">Trip total</th>
               {columns.map((c) => (
-                <td key={c.row.id} className="border-l border-slate-200 p-3 text-lg font-bold tabular-nums text-slate-900" data-testid="compare-total">
+                <td key={c.row.id} className="border-l border-gray-200 p-3 text-lg font-bold tabular-nums text-gray-900" data-testid="compare-total">
                   {formatCents(c.listing.price.totalCents)}
                 </td>
               ))}
             </tr>
-            <tr className="border-t border-slate-200">
+            <tr className="border-t border-gray-200">
               <td className="p-3" />
               {columns.map((c) => (
-                <td key={c.row.id} className="space-y-2 border-l border-slate-200 p-3 align-top">
+                <td key={c.row.id} className="space-y-2 border-l border-gray-200 p-3 align-top">
                   {c.available ? (
                     <form action={startBookingAction}>
                       <input type="hidden" name="vehicleId" value={c.row.id} />
@@ -182,7 +182,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs text-slate-600">
+      <p className="mt-3 text-xs text-gray-600">
         Totals include every mandatory fee. Cleaning, fuel and damage charges apply only if something happens at return; see
         each vehicle’s page. Prices and availability are re-checked each time this page loads.
       </p>

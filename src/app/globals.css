@@ -1,14 +1,38 @@
 @import "tailwindcss";
 
-/* Provisional visual defaults (D-010): light neutral surfaces, charcoal
-   text, one restrained blue accent. Replace once a design reference exists. */
+/* Design tokens from the Figma mockup ("Carrus v2"): Cardo everywhere,
+   near-black text, one royal-blue accent, hairline borders, soft surfaces. */
 @theme inline {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-cardo), "Cardo", Georgia, "Times New Roman", serif;
+  --font-serif: var(--font-cardo), "Cardo", Georgia, "Times New Roman", serif;
+  --color-brand: #3f5efb;
+  --color-brand-dark: #2f49d6;
+  --color-brand-soft: #eef1ff;
+  --color-ink: #111827;
+  --color-surface: #f7f8fa;
+  --color-night: #0b1020;
+}
+
+/* Cardo runs small; the mockup sets body copy at 17px. */
+html {
+  font-size: 106.25%;
 }
 
 body {
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-feature-settings: "kern", "liga", "onum" 0, "lnum";
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: #dbe2ff;
 }
 
 @keyframes carrus-marquee {
@@ -21,7 +45,7 @@ body {
 }
 
 .marquee-track {
-  animation: carrus-marquee 32s linear infinite;
+  animation: carrus-marquee 36s linear infinite;
 }
 .marquee-paused .marquee-track {
   animation-play-state: paused;

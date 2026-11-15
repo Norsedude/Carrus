@@ -7,7 +7,17 @@ Source brief: `CARRUS_HANDOFF.md` (supplied by Mateo in chat on 2026-11-14; not 
 
 Branch `feat/milestone-a` (local only, not pushed). Stack: Next.js 16 + local Supabase (see DECISIONS D-001).
 
-Last full check run (2026-11-14): lint clean, typecheck clean, 46 unit tests, 24 integration tests, 13 browser tests, production build. All passed.
+Last full check run (2026-11-14, after the restyle): lint clean, typecheck clean, 46 unit tests, 24 integration tests, 13 browser tests, production build. All passed.
+
+### Restyle (2026-11-14, second pass)
+
+- Team logo (`public/carrus-logo.png`, from the PNG Mateo supplied), Cardo as the only typeface, colors from the Figma file (accent `#3f5efb`). Layout follows the mockup's structure for header, home, search results, vehicle details and compare; other pages inherit the tokens. Mateo said exact Figma fidelity is not required for now.
+- Listings now show photos: six photos and the hero image were downloaded from the team's Figma file into `public/vehicles/` and `public/hero.jpg`, referenced through `vehicle_photos.storage_path`. Listings without a photo fall back to an illustration. Partner photo **upload** is still not built.
+- `npm run seed:demo`: six original mock listings modeled on the mockup (Mustang, M2, 720S, Land Cruiser, Defender, Explorer) in San Jose, available for one year from the seed date. Nothing was scraped from other marketplaces (see DECISIONS D-020).
+- Vehicle types now include Sports and Luxury (migration `20261114000002`).
+- Wording aligned to the test plan: "N vehicles found", "No vehicles match your filters", "Max price per day", "Est. total", "Base rate (4 days × $68) / Protection / Taxes and fees / Trip total", "Mandatory fees / Estimated taxes" for the flat-fee policy, "Your card was declined."
+- Home page strip shows the nine company names from the presentation as plain wordmarks with a "not connected or affiliated" note (D-019 revised).
+- Favorites, Inbox, Help, Save search, Share, ratings and trip counts from the mockup are **not built** and not shown.
 
 ### Working (real code, covered by executed tests)
 

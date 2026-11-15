@@ -39,11 +39,11 @@ async function fillCheckout(page: Page, number: string) {
 test.describe("search", () => {
   test("TC-S01: home search returns the four vehicles with full totals", async ({ page }) => {
     await page.goto("/");
-    await page.getByLabel("Pickup location").fill("SJC");
-    await page.getByLabel("Pickup date and time").fill("2026-12-10T10:00");
-    await page.getByLabel("Return date and time").fill("2026-12-13T10:00");
-    await page.getByRole("button", { name: "Search vehicles" }).click();
-    await expect(page.getByTestId("result-count")).toHaveText("4 vehicles available");
+    await page.getByLabel("Where").fill("SJC");
+    await page.getByLabel("Pickup", { exact: true }).fill("2026-12-10T10:00");
+    await page.getByLabel("Return", { exact: true }).fill("2026-12-13T10:00");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await expect(page.getByTestId("result-count")).toHaveText("4 vehicles found");
     const totals = { "CAR-001": "$240.00", "CAR-002": "$270.00", "CAR-003": "$210.00", "CAR-004": "$330.00" };
     for (const [code, total] of Object.entries(totals)) {
       await expect(card(page, code).getByTestId("card-total")).toHaveText(total);
@@ -52,16 +52,16 @@ test.describe("search", () => {
 
   test("TC-S02: revised dates show only CAR-002", async ({ page }) => {
     await page.goto("/search?location=SJC&pickup=2026-12-14T10:00&return=2026-12-17T10:00");
-    await expect(page.getByTestId("result-count")).toHaveText("1 vehicle available");
+    await expect(page.getByTestId("result-count")).toHaveText("1 vehicle found");
     await expect(card(page, "CAR-002")).toBeVisible();
   });
 
   test("TC-S03 / TC-S04: empty location and return-before-pickup are blocked with messages", async ({ page }) => {
     await page.goto("/");
-    await page.getByLabel("Pickup location").fill("");
-    await page.getByLabel("Pickup date and time").fill("2026-12-13T10:00");
-    await page.getByLabel("Return date and time").fill("2026-12-10T10:00");
-    await page.getByRole("button", { name: "Search vehicles" }).click();
+    await page.getByLabel("Where").fill("");
+    await page.getByLabel("Pickup", { exact: true }).fill("2026-12-13T10:00");
+    await page.getByLabel("Return", { exact: true }).fill("2026-12-10T10:00");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
     await expect(page.getByText("Enter a pickup location")).toBeVisible();
     await expect(page.getByText("Return must be after pickup")).toBeVisible();
     await expect(page.getByTestId("vehicle-card")).toHaveCount(0);
@@ -74,27 +74,33 @@ test.describe("search", () => {
     await seats.blur();
     await expect(page.getByText("Enter a whole number from 1 to 15")).toBeVisible();
     await expect(seats).toHaveValue("1");
+    // TC-FR03: an invalid value followed by Apply keeps the results and shows the message.
+    await seats.fill("2.5");
+    await page.getByRole("button", { name: "Apply" }).click();
+    await expect(page.getByText("Enter a whole number from 1 to 15")).toBeVisible();
+    await expect(seats).toHaveValue("1");
+    await expect(page.getByTestId("result-count")).toHaveText("4 vehicles found");
     await seats.fill("7");
     await page.getByRole("button", { name: "Apply" }).click();
-    await expect(page.getByTestId("result-count")).toHaveText("1 vehicle available");
+    await expect(page.getByTestId("result-count")).toHaveText("1 vehicle found");
     await expect(card(page, "CAR-004")).toBeVisible();
     await page.getByRole("link", { name: "Clear all" }).click();
-    await expect(page.getByTestId("result-count")).toHaveText("4 vehicles available");
+    await expect(page.getByTestId("result-count")).toHaveText("4 vehicles found");
   });
 });
 
 test.describe("compare", () => {
   test("TC-C01 / TC-C02 / TC-C03: compare two, then three; a fourth is blocked", async ({ page }) => {
     await page.goto(SEARCH);
-    await card(page, "CAR-001").getByRole("button", { name: /Add to compare/ }).click();
-    await card(page, "CAR-002").getByRole("button", { name: /Add to compare/ }).click();
+    await card(page, "CAR-001").getByRole("checkbox", { name: /Compare/ }).click();
+    await card(page, "CAR-002").getByRole("checkbox", { name: /Compare/ }).click();
     await page.getByRole("link", { name: /^Compare/ }).first().click();
     await expect(page.getByTestId("compare-column")).toHaveCount(2);
     await expect(page.getByTestId("compare-total")).toHaveText(["$240.00", "$270.00"]);
 
     await page.goto(SEARCH);
-    await card(page, "CAR-003").getByRole("button", { name: /Add to compare/ }).click();
-    await card(page, "CAR-004").getByRole("button", { name: /Add to compare/ }).click();
+    await card(page, "CAR-003").getByRole("checkbox", { name: /Compare/ }).click();
+    await card(page, "CAR-004").getByRole("checkbox", { name: /Compare/ }).click();
     await expect(card(page, "CAR-004").getByText("You can compare up to 3 vehicles")).toBeVisible();
     await page.getByRole("link", { name: /^Compare/ }).first().click();
     await expect(page.getByTestId("compare-column")).toHaveCount(3);
@@ -121,7 +127,7 @@ test.describe("compare", () => {
 test.describe("booking", () => {
   test("TC-PR01 / TC-PR03 / TC-CK01 / TC-B01 / TC-B02 / TC-BC01-03: reserve CAR-001 for $240 end to end", async ({ page }) => {
     await page.goto(SEARCH);
-    await card(page, "CAR-001").getByRole("link", { name: /View details/ }).click();
+    await card(page, "CAR-001").getByRole("link", { name: /View deal/ }).click();
     await expect(page.getByTestId("price-total")).toHaveText("$240.00");
     await page.getByRole("button", { name: "Reserve this vehicle" }).click();
 
@@ -160,7 +166,7 @@ test.describe("booking", () => {
 
     // The vehicle is gone from search for those dates.
     await page.goto(SEARCH);
-    await expect(page.getByTestId("result-count")).toHaveText("3 vehicles available");
+    await expect(page.getByTestId("result-count")).toHaveText("3 vehicles found");
     await expect(card(page, "CAR-001")).toHaveCount(0);
 
     // The partner dashboard shows the same reservation.
@@ -192,7 +198,7 @@ test.describe("booking", () => {
 
     await fillCheckout(page, "4000 0000 0000 0002");
     await page.getByRole("button", { name: /Pay \$270\.00/ }).click();
-    await expect(page.getByTestId("checkout-message")).toContainText("declined");
+    await expect(page.getByTestId("checkout-message")).toContainText("Your card was declined.");
     expect(await bookingCount()).toBe(0);
     expect((await admin.from("payments").select("state")).data).toEqual([{ state: "failed" }]);
 
@@ -341,7 +347,7 @@ test.describe("accounts, partners and admin", () => {
 
     // Not public before approval.
     await page.goto(SEARCH);
-    await expect(page.getByTestId("result-count")).toHaveText("4 vehicles available");
+    await expect(page.getByTestId("result-count")).toHaveText("4 vehicles found");
 
     await signOut(page);
     await page.goto("/login?next=/admin");
@@ -349,8 +355,8 @@ test.describe("accounts, partners and admin", () => {
     await page.locator('[data-testid="pending-listing"]', { hasText: "Mazda" }).getByRole("button", { name: /Approve/ }).click();
     await expect(page.getByText("Listing review recorded.")).toBeVisible();
     await page.goto(SEARCH);
-    await expect(page.getByTestId("result-count")).toHaveText("5 vehicles available");
-    await expect(page.getByRole("heading", { name: "2023 Mazda 3" })).toBeVisible();
-    await expect(page.getByText("Offered by Harper's Hatchbacks · Verified partner")).toBeVisible();
+    await expect(page.getByTestId("result-count")).toHaveText("5 vehicles found");
+    await expect(page.getByRole("heading", { name: "Mazda 3" })).toBeVisible();
+    await expect(page.getByText("Harper's Hatchbacks · Verified partner")).toBeVisible();
   });
 });

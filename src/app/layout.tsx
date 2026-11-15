@@ -1,56 +1,79 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Cardo } from "next/font/google";
 import Link from "next/link";
+import { CarFront } from "lucide-react";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/brand";
 import { CompareNavLink } from "@/components/compare";
+import { NavLink } from "@/components/nav-link";
 import { getSessionUser } from "@/lib/auth/session";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+// Cardo is the single typeface for the whole site (regular, italic, bold).
+const cardo = Cardo({ variable: "--font-cardo", subsets: ["latin"], weight: ["400", "700"], style: ["normal", "italic"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Carrus: find the exact rental car for your trip", template: "%s | Carrus" },
-  description:
-    "Search, compare and book a specific rental vehicle with the full price shown up front. Class project prototype.",
+  title: { default: "Carrus: find your next drive", template: "%s | Carrus" },
+  description: "Search, compare and reserve one specific rental vehicle with the full price shown up front. Class project prototype.",
 };
 
 const navLink =
-  "rounded-md px-2.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-700";
+  "rounded-md px-1 py-1 text-[1.02rem] text-gray-900 hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand";
+const navActive = "font-bold text-brand";
 
 async function Header() {
   const user = await getSessionUser();
+  const isPartner = user?.roles.includes("partner");
+  const firstName = (user?.displayName || user?.email || "").replace(/\s*\(.*\)$/, "").split(/[\s@]/)[0];
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3 sm:px-6">
-        <Link href="/" className="mr-2 rounded-md focus-visible:outline-2 focus-visible:outline-blue-700" aria-label="Carrus home">
-          <Logo />
+    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-4 py-3 sm:px-6 lg:h-[4.5rem] lg:py-0">
+        <Link href="/" className="rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand" aria-label="Carrus home">
+          <Logo className="h-8 w-auto" />
         </Link>
-        <nav aria-label="Main" className="order-3 -mx-2 flex w-full flex-wrap items-center gap-1 sm:order-none sm:mx-0 sm:w-auto sm:flex-1">
-          <Link href="/#search" className={navLink}>
+        <nav aria-label="Main" className="order-3 flex w-full flex-wrap items-center gap-x-6 gap-y-1 sm:order-none sm:w-auto sm:flex-1">
+          <NavLink href="/#search" match={["/", "/search", "/vehicles", "/booking", "/checkout"]} className={navLink} activeClassName={navActive}>
             Search
-          </Link>
-          <CompareNavLink className={navLink} />
-          <Link href="/join-the-fleet" className={navLink}>
-            Join the Fleet
-          </Link>
-          {user?.roles.includes("partner") && (
-            <Link href="/partner" className={navLink}>
+          </NavLink>
+          <CompareNavLink className={navLink} activeClassName={navActive} />
+          <NavLink href="/trips" match={["/trips", "/bookings"]} className={navLink} activeClassName={navActive}>
+            Trips
+          </NavLink>
+          {isPartner && (
+            <NavLink href="/partner" match={["/partner"]} className={navLink} activeClassName={navActive}>
               Partner
-            </Link>
+            </NavLink>
           )}
           {user?.roles.includes("admin") && (
-            <Link href="/admin" className={navLink}>
+            <NavLink href="/admin" match={["/admin"]} className={navLink} activeClassName={navActive}>
               Admin
-            </Link>
+            </NavLink>
           )}
         </nav>
-        <Link
-          href={user ? "/account" : "/login"}
-          className="ml-auto inline-flex items-center rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-blue-700"
-        >
-          {user ? "Account" : "Sign in"}
-        </Link>
+        <div className="ml-auto flex items-center gap-3">
+          <Link
+            href="/join-the-fleet"
+            className="hidden items-center gap-1.5 rounded-full border-[1.5px] border-brand px-3.5 py-1.5 text-[0.9rem] font-bold text-brand hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand min-[420px]:inline-flex"
+          >
+            <CarFront className="size-4" aria-hidden />
+            List your car
+          </Link>
+          {user ? (
+            <Link href="/account" className="flex items-center gap-2.5 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" aria-label="Account">
+              <span aria-hidden className="flex size-9 items-center justify-center rounded-full bg-brand-soft text-base font-bold text-brand">
+                {(firstName[0] ?? "A").toUpperCase()}
+              </span>
+              <span aria-hidden className="hidden text-[0.95rem] text-gray-900 md:inline">{firstName}</span>
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-[0.95rem] font-bold text-gray-900 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              Sign in
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );
@@ -58,17 +81,18 @@ async function Header() {
 
 function Footer() {
   return (
-    <footer className="mt-12 border-t border-slate-200 bg-white">
-      <div className="mx-auto max-w-6xl space-y-2 px-4 py-6 text-sm text-slate-600 sm:px-6">
-        <p>
-          <strong className="text-slate-800">Carrus is a class prototype</strong> (CMPE 131, San José State University). Vehicles,
-          partners and payments shown here are demonstration data. No real rentals are offered and no money moves.
+    <footer className="mt-16 border-t border-gray-200 bg-white">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-8 gap-y-2 px-4 py-6 text-sm text-gray-500 sm:px-6">
+        <p className="tracking-wide">© CARRUS 2026</p>
+        <p className="flex flex-wrap gap-x-6 gap-y-1">
+          <Link href="/#search" className="hover:text-gray-900">Search</Link>
+          <Link href="/compare" className="hover:text-gray-900">Compare</Link>
+          <Link href="/trips" className="hover:text-gray-900">Trips</Link>
+          <Link href="/join-the-fleet" className="hover:text-gray-900">Join the fleet</Link>
         </p>
-        <p className="flex flex-wrap gap-x-4 gap-y-1">
-          <Link href="/#search" className="hover:underline">Search</Link>
-          <Link href="/compare" className="hover:underline">Compare</Link>
-          <Link href="/join-the-fleet" className="hover:underline">Join the Fleet</Link>
-          <Link href="/trips" className="hover:underline">Trips</Link>
+        <p className="w-full text-xs text-gray-500">
+          Class prototype (CMPE 131, San José State University). Vehicles, hosts and payments are demonstration data. No real
+          rentals are offered and no money moves.
         </p>
       </div>
     </footer>
@@ -77,7 +101,7 @@ function Footer() {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="en" className={`${cardo.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:shadow">
           Skip to content

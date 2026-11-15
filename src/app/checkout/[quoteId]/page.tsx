@@ -49,7 +49,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ quote
         </div>
         <aside className={`${cardCls} h-fit space-y-5 p-5`}>
           <TripSummary vehicle={quote.vehicle} pickupAt={quote.pickupAt} returnAt={quote.returnAt} compact />
-          <hr className="border-slate-200" />
+          <hr className="border-gray-200" />
           <PriceBreakdownView price={quote.breakdown} heading="Amount due" />
         </aside>
       </div>
