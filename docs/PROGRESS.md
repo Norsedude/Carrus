@@ -27,6 +27,15 @@ Last full check run (2026-11-14, after the restyle): lint clean, typecheck clean
 - Home page strip shows the nine company names from the presentation as plain wordmarks with a "not connected or affiliated" note (D-019 revised).
 - Favorites, Inbox, Help, Save search, Share, ratings and trip counts from the mockup are **not built** and not shown.
 
+### F6 pickup condition check (2026-11-17, branch `feat/f6-pickup-inspection`)
+
+- Partner: "Prepare vehicle" on a confirmed reservation, with "Vehicle is clean" and "Fuel level is Full", then "Confirm ready" (state becomes Ready for pickup, `bookings.ready_at` saved, audit event).
+- Customer: "Start condition check" on a ready trip opens `/trips/[id]/pickup-check`: exterior damage, fuel level, cleanliness, one photo each for exterior, fuel gauge and interior, and an acknowledgment. Saving moves the reservation to Active. Both the trip page and the partner reservation page show the saved record with timestamped photos.
+- Database: migration `20261125000001_pickup_inspections.sql` (tables `inspections` and `inspection_photos`, private bucket `inspection-photos`, functions `mark_ready_for_pickup` and `record_pickup_inspection`). The return inspection (F7) reuses the same tables with stage `return`.
+- `npm run seed:sanjay` now also creates reservations #1001 (confirmed), #1002 and #1003 (ready for pickup) on archived RAV4 test units, so search results are unchanged.
+- Checked so far: lint, typecheck, 61 unit tests, production build, and the migration's functions and row-level security in an in-memory Postgres. **Not yet run:** `tests/integration/inspection.test.ts` and a browser pass, which need local Supabase in Docker.
+- Server actions and the proxy accept bodies up to 32 MB (three 10 MB photos) in `next.config.ts`.
+
 ### Working (real code, covered by executed tests)
 
 - **Accounts:** sign up, sign in, sign out, password reset by emailed link (local mail catcher), profile edit, session persists across reloads. Supabase Auth; no custom password handling.
@@ -52,7 +61,7 @@ Last full check run (2026-11-14, after the restyle): lint clean, typecheck clean
 ### Not built yet
 
 - Milestone B remainder: listing photo upload and storage, multiple availability windows / calendar, request-to-book mode with partner approve/decline, searches/saved searches tables, notifications outbox, rate limiting, consistent JSON API routes (pages use server actions today).
-- Milestone C: cancellation, inspections (pickup/return, photos), fee assessment, disputes, refunds, payout ledger, admin reports, Sanjay reservations #1001–#1011.
+- Milestone C: cancellation, return inspection and fee assessment (F7), disputes (F8), refunds, payout ledger, admin reports, Sanjay reservations #1004–#1011. (Pickup inspection, F6, is built above.)
 - Milestone D: hosting, hosted Supabase, Stripe sandbox, admin MFA.
 - CI workflow file exists (`.github/workflows/ci.yml`) but has **never run**; it covers lint, typecheck, unit tests and build only.
 - Mockup alignment: the Figma mockup (see below) was received after the UI was built. Current styling is the provisional default and does **not** match it yet.

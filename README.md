@@ -83,6 +83,7 @@ For the new external demo checkout, follow [docs/PARTNER_FEEDS.md](docs/PARTNER_
 3. Try `4000 0000 0000 0002` to see a declined payment: no reservation is created.
 4. Sign in as `test.partner@carrus.test` to see the same booking under the partner dashboard, and to add or edit a listing.
 5. Sign in as `test.admin@carrus.test` to approve the new listing or a Join the Fleet application.
+6. Pickup condition check (TC-PC01 to TC-PC04): run `npm run seed:sanjay`. As `test.partner@carrus.test`, open reservation #1001 from the partner dashboard, click **Prepare vehicle**, tick both boxes and click **Confirm ready**. As `test.customer@carrus.test`, open **Trips**, then #1002, click **Start condition check**, choose the three values, add a JPG or PNG for each photo, tick the confirmation and click **Submit**.
 
 To follow the written test cases (TC-S01, TC-B01 and so on) exactly, load their data first with `npm run seed:mateo`, then search **SJC**, Dec 10 2026 10:00 to Dec 13 2026 10:00.
 
@@ -113,7 +114,7 @@ The integration and browser tests load the `seed:mateo` data. Run `npm run seed:
 | `npm run db:types` | Regenerate `src/lib/supabase/database.types.ts` after a schema change |
 | `npm run seed:demo` | Reset, then seed six photographed showcase vehicles in San Jose, available for a year |
 | `npm run seed:mateo` | Reset, then seed four SJC vehicles. Add `-- --with-reservation` for RES-TEST-001 |
-| `npm run seed:sanjay` | Reset, then seed seven San Jose vehicles (January 2027 dates) |
+| `npm run seed:sanjay` | Reset, then seed seven San Jose vehicles (January 2027 dates) and reservations #1001–#1003 for the pickup condition check (TC-PC) |
 | `npm run test:reset` | Remove all app data and fixture accounts |
 
 Seed and reset commands refuse to run unless the Supabase host is in `TEST_DATABASE_ALLOWLIST` and `APP_ENV` is `development` or `test`.

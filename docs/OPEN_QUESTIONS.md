@@ -10,8 +10,8 @@ Each has a working default so development is not blocked. Answer when convenient
 | Q-04 | Late cancellation: is the 24-hour cutoff inclusive, and what is charged after it? | Not built. |
 | Q-05 | Hold durations: 10-minute checkout hold, 30-minute partner response? | 10 minutes; partner response not built. |
 | Q-06 | Allow an inquiry or waitlist while another customer holds the vehicle? | No; conflicting requests are rejected. |
-| Q-07 | Pickup inspection window: 15 or 20 minutes? | Not built. |
-| Q-08 | Is 10 MB for photos 10,000,000 bytes? | Not built. |
+| Q-07 | Pickup inspection window: 15 or 20 minutes? | No window enforced yet (D-027). |
+| Q-08 | Is 10 MB for photos 10,000,000 bytes? | 10 × 1024 × 1024 = 10,485,760 bytes for inspection photos. |
 | Q-09 | Hosting: who creates the Supabase and Vercel projects, and when? Nothing is provisioned. | Local only. |
 | Q-10 | Any real provider API access? | None; mock adapter only. |
 | Q-11 | Please save `CARRUS_HANDOFF.md` into the repo (for example `docs/reference/`) so future sessions can read it, and say whether the source ZIP should be kept anywhere. | Not in the repo. |

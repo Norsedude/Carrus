@@ -3,7 +3,7 @@
  *
  *   npm run seed:mateo              four SJC vehicles (TC-S / TC-C / TC-B / TC-P)
  *   npm run seed:mateo -- --with-reservation    also creates RES-TEST-001
- *   npm run seed:sanjay             seven San Jose vehicles (TC-FR / TC-PT)
+ *   npm run seed:sanjay             seven San Jose vehicles (TC-FR / TC-PT) and reservations #1001-#1003 (TC-PC)
  *   npm run seed:demo               six photographed showcase vehicles, available for the next year
  *   npm run test:reset              remove all app data and fixture users
  *
@@ -61,6 +61,29 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
   return data;
 }
 
+/** Deletes every file in the private inspection-photos bucket (photos are stored as <booking>/<stage>/<file>). */
+async function clearInspectionPhotos() {
+  const bucket = db.storage.from("inspection-photos");
+  const top = await bucket.list("", { limit: 1000 });
+  if (top.error) {
+    // The bucket only exists once the F6 migration has run (npm run db:reset or db:migrate).
+    if (/not found/i.test(top.error.message)) return;
+    throw new Error(`list inspection photos: ${top.error.message}`);
+  }
+  const paths: string[] = [];
+  for (const folder of top.data) {
+    for (const stage of ["pickup", "return"]) {
+      const files = await bucket.list(`${folder.name}/${stage}`, { limit: 1000 });
+      if (files.error) throw new Error(`list inspection photos: ${files.error.message}`);
+      paths.push(...files.data.map((f) => `${folder.name}/${stage}/${f.name}`));
+    }
+  }
+  if (paths.length > 0) {
+    const removed = await bucket.remove(paths);
+    if (removed.error) throw new Error(`remove inspection photos: ${removed.error.message}`);
+  }
+}
+
 export async function reset() {
   assertSafeTarget();
   const tables = [
@@ -71,6 +94,7 @@ export async function reset() {
     await must(db.from(table).delete().not("id", "is", null), `clear ${table}`);
   }
   await must(db.from("audit_events").delete().gt("id", 0), "clear audit_events");
+  await clearInspectionPhotos();
   const users = await db.auth.admin.listUsers({ perPage: 1000 });
   if (users.error) throw new Error(users.error.message);
   for (const u of users.data.users) {
@@ -234,7 +258,67 @@ export async function seedSanjay() {
     { code: "SJ-F150", make: "Ford", model: "F-150", year: 2021, color: "Black", type: "Truck", seats: 5, daily: 95, miles: 12.0, bearing: 280, windowEnd: end, description: "Full-size pickup truck." },
     { code: "SJ-TRANSIT", make: "Ford", model: "Transit", year: 2023, color: "White", type: "Van", seats: 15, daily: 120, miles: 9.5, bearing: 330, windowEnd: end, description: "Fifteen-passenger van." },
   ]);
-  return { ids, partnerId, vehicles };
+  const reservations = await seedSanjayReservations(ids.customer1, partnerId, providerId, protection);
+  return { ids, partnerId, vehicles, reservations };
+}
+
+/**
+ * Test data Table 4: reservations #1001-#1003 for the pickup condition check
+ * (TC-PC01 to TC-PC04). Each uses its own 2024 Toyota RAV4 unit (TST-1001 to
+ * TST-1003). The units are archived listings, so they never appear in search
+ * and the "7 vehicles found" results for TC-FR stay unchanged.
+ * #1004-#1011 (return inspection and disputes) are added with F7 and F8.
+ */
+async function seedSanjayReservations(
+  customerId: string, partnerId: string, providerId: string,
+  protection: { id: string; key: string; version: number; formula: unknown },
+) {
+  const pickupAt = local("2027-03-01T10:00");
+  const returnAt = local("2027-03-05T10:00");
+  const price = calculatePrice({
+    dailyRateCents: 6800, pickupAt, returnAt,
+    policy: { id: protection.id, key: protection.key, version: protection.version, formula: protection.formula as PolicyFormula },
+  });
+  if (price.totalCents !== 35640) throw new Error("Reservations #1001-#1003 should total $356.40");
+  const sanJose = { lat: 37.3382, lng: -121.8863 };
+  const rows: { reference: string; state: "confirmed" | "ready_for_pickup" }[] = [
+    { reference: "#1001", state: "confirmed" },
+    { reference: "#1002", state: "ready_for_pickup" },
+    { reference: "#1003", state: "ready_for_pickup" },
+  ];
+  const out: Record<string, string> = {};
+  for (const [i, r] of rows.entries()) {
+    const code = `TST-${r.reference.slice(1)}`;
+    const at = offsetByMiles(sanJose, 3.2, 130 + i);
+    const vehicle = await must(db.from("vehicles").insert({
+      public_code: code, partner_id: partnerId, provider_id: providerId,
+      make: "Toyota", model: "RAV4", year: 2024, color: "White", vehicle_type: "SUV", seats: 5,
+      transmission: "Automatic", description: `Test unit for reservation ${r.reference}. Not listed in search.`,
+      location_label: "San Jose, CA", latitude: at.lat, longitude: at.lng, time_zone: TZ,
+      daily_rate_cents: 6800, pricing_policy_id: protection.id, booking_mode: "instant",
+      lifecycle_status: "archived", approved_at: new Date().toISOString(),
+    }).select("id").single(), `vehicle ${code}`);
+    const snapshot = {
+      vehicleId: vehicle!.id, publicCode: code, make: "Toyota", model: "RAV4", year: 2024,
+      color: "White", vehicleType: "SUV", seats: 5, transmission: "Automatic",
+      locationLabel: "San Jose, CA", timeZone: TZ, dailyRateCents: 6800,
+      pricingPolicyId: protection.id, partnerId, partnerName: "South Bay Fleet (PARTNER-01)",
+      bookingMode: "instant", cancellationPolicy: "free_24h",
+    };
+    const booking = await must(db.from("bookings").insert({
+      reference: r.reference, customer_id: customerId, partner_id: partnerId, vehicle_id: vehicle!.id,
+      pickup_at: pickupAt.toISOString(), return_at: returnAt.toISOString(), state: r.state,
+      total_cents: price.totalCents, price_snapshot: JSON.parse(JSON.stringify(price)), vehicle_snapshot: snapshot,
+      contact_name: "Casey Customer", contact_phone: "408-555-0101",
+      ready_at: r.state === "ready_for_pickup" ? new Date().toISOString() : null,
+    }).select("id").single(), `reservation ${r.reference}`);
+    await must(db.from("occupancy").insert({
+      vehicle_id: vehicle!.id, kind: "booking", booking_id: booking!.id,
+      period: `[${pickupAt.toISOString()},${returnAt.toISOString()})`,
+    }), `reservation ${r.reference} occupancy`);
+    out[r.reference] = booking!.id;
+  }
+  return out;
 }
 
 /**
@@ -272,7 +356,7 @@ async function main() {
     console.log(`Seeded Mateo profile${flags.includes("--with-reservation") ? " with RES-TEST-001" : ""}.`);
   } else if (command === "sanjay") {
     await seedSanjay();
-    console.log("Seeded Sanjay profile (search inventory; reservations #1001-#1011 are not implemented yet).");
+    console.log("Seeded Sanjay profile (search inventory and reservations #1001-#1003; #1004-#1011 come with F7 and F8).");
   } else if (command === "demo") {
     await seedDemo();
     console.log("Seeded demo showcase profile (six photographed vehicles in San Jose, available for one year).");
