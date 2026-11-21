@@ -4,7 +4,7 @@ This is the setup for an always-available Carrus preview that deploys after a pu
 
 ## Accounts and initial setup
 
-1. Create Vercel and Supabase accounts. The GitHub repository is `SRamkumar190/Carrus`; the account used for each integration needs access to it. Keep the production Supabase project separate from the local Docker database.
+1. Create Vercel and Supabase accounts. Import the mirrored GitHub repository `Norsedude/Carrus`; the account used for each integration needs access to it. Keep the production Supabase project separate from the local Docker database.
 2. Choose a Supabase plan. The Free plan can pause after low activity; choose a paid plan if the database must stay available 24/7. [Supabase pausing policy](https://supabase.com/docs/guides/platform/free-project-pausing).
 3. Create a hosted Supabase project. Connect its GitHub integration to this repository, working directory `.`, production branch `main`, and enable **Deploy to production**. Apply the migrations in `supabase/migrations` before testing the site. [Supabase GitHub integration](https://supabase.com/docs/guides/deployment/branching/github-integration). Do not run `seed:demo` against production: seed scripts are intentionally local-only and reset data.
 4. In the Supabase dashboard, note the **Project URL**, **publishable key**, and **secret key**. Keep the secret key private. Set the Auth Site URL to the final HTTPS site URL and allow `https://YOUR-SITE/auth/callback` as a redirect URL. Email confirmation and password reset require deliverable email; configure custom SMTP if users beyond pre-authorized team addresses need Auth emails. [Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls), [SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
