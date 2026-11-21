@@ -7,18 +7,19 @@ import { formatCents } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/time";
 import type { VehicleSnapshot } from "@/server/booking/service";
+import type { VehicleListing } from "@/server/search/types";
 
 export const metadata: Metadata = { title: "My trips" };
 
 export default async function TripsPage() {
   const user = await requireUser("/trips");
   const db = await createClient();
-  const { data } = await db
-    .from("bookings")
-    .select("id, reference, state, pickup_at, return_at, total_cents, vehicle_snapshot")
-    .eq("customer_id", user.id)
-    .order("pickup_at", { ascending: true });
+  const [{ data }, { data: demoData }] = await Promise.all([
+    db.from("bookings").select("id, reference, state, pickup_at, return_at, total_cents, vehicle_snapshot").eq("customer_id", user.id).order("pickup_at", { ascending: true }),
+    db.from("external_demo_orders").select("id, state, demo_reference, pickup_at, return_at, total_cents, listing_snapshot, provider_name").eq("customer_id", user.id).eq("state", "confirmed").order("pickup_at", { ascending: true }),
+  ]);
   const bookings = data ?? [];
+  const demos = demoData ?? [];
   const now = getNow().getTime();
   const upcoming = bookings.filter((b) => new Date(b.return_at).getTime() >= now);
   const past = bookings.filter((b) => new Date(b.return_at).getTime() < now);
@@ -46,7 +47,7 @@ export default async function TripsPage() {
 
   return (
     <PageShell title="My trips">
-      {bookings.length === 0 ? (
+      {bookings.length === 0 && demos.length === 0 ? (
         <div className={`${cardCls} p-6`}>
           <p className="text-sm text-gray-700">You have no reservations yet.</p>
           <Link href="/#search" className={`${btnPrimary} mt-4`}>Search vehicles</Link>
@@ -61,6 +62,26 @@ export default async function TripsPage() {
             <section aria-labelledby="past-heading">
               <h2 id="past-heading" className="mb-3 text-lg font-semibold text-gray-900">Past</h2>
               {list(past)}
+            </section>
+          )}
+          {demos.length > 0 && (
+            <section aria-labelledby="demo-heading">
+              <h2 id="demo-heading" className="mb-2 text-lg font-semibold text-gray-900">External demo checkouts</h2>
+              <p className="mb-3 text-sm text-gray-600">These are Carrus simulations. No provider car was reserved and no payment was made.</p>
+              <ul className="space-y-3">
+                {demos.map((demo) => {
+                  const listing = demo.listing_snapshot as unknown as VehicleListing;
+                  return (
+                    <li key={demo.id} className={`${cardCls} flex flex-wrap items-center justify-between gap-3 p-4`}>
+                      <div>
+                        <Link href={`/external/confirmation/${demo.id}`} className="font-bold text-brand underline">{listing.year} {listing.make} {listing.model}</Link>
+                        <p className="text-sm text-gray-600">{demo.provider_name} · {formatDateTime(demo.pickup_at, listing.timeZone)} · {demo.demo_reference}</p>
+                      </div>
+                      <span className="font-bold">{formatCents(demo.total_cents)} demo total</span>
+                    </li>
+                  );
+                })}
+              </ul>
             </section>
           )}
         </div>

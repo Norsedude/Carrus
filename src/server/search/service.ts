@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { applyFilters, sortListings } from "@/server/search/filter";
 import { fetchListings, type ProviderAdapter } from "@/server/search/gateway";
 import { demoExternalAdapter } from "@/server/search/providers/demo-external";
+import { configuredPartnerAdapters } from "@/server/search/providers/partner-feed";
 import { PAGE_SIZE, type SearchCriteria, type SearchResponse } from "@/server/search/types";
 import { availableVehicleIds, getVehicleRows, toListing, type Db } from "@/server/vehicles/repository";
 
@@ -23,6 +24,7 @@ export function nativeAdapter(db: Db): ProviderAdapter {
 export function enabledAdapters(db: Db, providerMode: "native" | "native+demo"): ProviderAdapter[] {
   const adapters = [nativeAdapter(db)];
   if (providerMode === "native+demo") adapters.push(demoExternalAdapter);
+  adapters.push(...configuredPartnerAdapters());
   return adapters;
 }
 

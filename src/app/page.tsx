@@ -9,6 +9,7 @@ import { getNow } from "@/lib/clock";
 import { createClient } from "@/lib/supabase/server";
 import { DAY_MS, utcToZonedLocal, zonedLocalToUtc } from "@/lib/time";
 import type { VehicleListing } from "@/server/search/types";
+import { parsePartnerFeedConfig } from "@/server/search/providers/partner-feed";
 import { listPublishedRows, toListing } from "@/server/vehicles/repository";
 
 export const dynamic = "force-dynamic";
@@ -22,15 +23,15 @@ function defaultTrip() {
 }
 
 const STEPS = [
-  { icon: Search, title: "Search exact vehicles", body: "Every listing is one specific car from a verified host or fleet, filtered by where and when you need it." },
+  { icon: Search, title: "Search available vehicles", body: "Filter Carrus and connected listings by where and when you need a car. Some external offers may be for a similar vehicle." },
   { icon: DollarSign, title: "Compare the real total", body: "Every result shows taxes, fees and protection up front, so the cheapest car is actually the cheapest." },
-  { icon: Car, title: "Reserve the car you chose", body: "Book in a couple of minutes. The vehicle you reserve is the vehicle you pick up, not a similar one." },
+  { icon: Car, title: "Reserve your choice", body: "Book exact Carrus vehicles here. For external offers, confirm the details and book on the provider website." },
 ];
 
 const PROMISES = [
-  { icon: ShieldCheck, title: "Transparent pricing", body: "The total you see is the total you pay." },
-  { icon: BadgeCheck, title: "Verified listings", body: "Every host and listing is reviewed before it goes live." },
-  { icon: Car, title: "The exact vehicle", body: "Make, model, year and color, confirmed at booking." },
+  { icon: ShieldCheck, title: "Transparent pricing", body: "See itemized totals. Confirm live provider prices on their checkout page." },
+  { icon: BadgeCheck, title: "Verified Carrus listings", body: "Carrus reviews its own hosts and listings before they go live." },
+  { icon: Car, title: "Know what is offered", body: "Each result says whether it is an exact vehicle or a similar class." },
 ];
 
 function Row({ title, href, listings, trip }: { title: string; href: string; listings: VehicleListing[]; trip: { pickup: string; ret: string; location: string } }) {
@@ -53,6 +54,7 @@ function Row({ title, href, listings, trip }: { title: string; href: string; lis
 }
 
 export default async function HomePage() {
+  const connectedSources = parsePartnerFeedConfig(process.env.PARTNER_FEEDS_JSON).map((feed) => feed.name);
   const dates = defaultTrip();
   const db = await createClient();
   const rows = await listPublishedRows(db, 24);
@@ -82,7 +84,7 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl px-4 pb-16 pt-16 sm:px-6 sm:pb-20 sm:pt-24">
           <h1 className="text-5xl font-bold leading-[1.05] text-white sm:text-7xl">Find your next drive.</h1>
           <p className="mt-5 max-w-xl text-xl text-gray-200">
-            Verified hosts and local fleets in one search. Real totals, exact vehicles, no surprises at pickup.
+            Compare Carrus vehicles and connected rental offers with upfront pricing and clear booking details.
           </p>
           <div id="search" className="mt-9 scroll-mt-28">
             <h2 className="sr-only">Search vehicles</h2>
@@ -104,7 +106,7 @@ export default async function HomePage() {
       </section>
 
       <div className="mx-auto max-w-6xl space-y-14 px-4 py-12 sm:px-6">
-        <SourcesMarquee />
+        <SourcesMarquee connectedSources={connectedSources} />
 
         <section aria-labelledby="how-heading">
           <h2 id="how-heading" className="text-3xl font-bold text-gray-900">How Carrus works</h2>
