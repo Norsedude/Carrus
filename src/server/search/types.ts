@@ -70,6 +70,9 @@ export type VehicleListing = {
   cancellationPolicy: string;
   price: PriceBreakdown;
   sourceUrl?: string;
+  termsUrl?: string;
+  photoUrls?: string[];
+  checkoutDetails?: string;
   lastUpdated: string;
 };
 

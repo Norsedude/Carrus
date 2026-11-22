@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { startExternalDemoAction } from "@/app/actions/external-demo";
 import { Building2, MapPin, UserRound } from "lucide-react";
 import { VehicleImage } from "@/components/brand";
 import { CompareToggle } from "@/components/compare";
@@ -18,7 +19,7 @@ export function vehicleHref(id: string, trip: { pickup: string; ret: string; loc
 const wholeDollars = (cents: number) => (cents % 100 === 0 ? `$${cents / 100}` : formatCents(cents));
 
 /** Search result row: photo, the exact vehicle, who offers it, and the all-in total. */
-export function VehicleCard({ listing, trip }: { listing: VehicleListing; trip: { pickup: string; ret: string; location: string } }) {
+export function VehicleCard({ listing, trip }: { listing: VehicleListing; trip: { pickup: string; ret: string; location: string; radius?: number } }) {
   const name = vehicleName(listing);
   const native = listing.bookingCapability === "native_booking";
   const days = listing.price.billableDays;
@@ -54,6 +55,33 @@ export function VehicleCard({ listing, trip }: { listing: VehicleListing; trip: 
         <p className="text-[0.95rem] text-gray-900">
           {listing.seats} seats · {listing.transmission} · {listing.vehicleType}
         </p>
+        {!native && listing.sourceUrl && (
+          <details className="pt-2 text-sm text-gray-700">
+            <summary className="cursor-pointer font-bold text-brand">Photos, price breakdown and rental details</summary>
+            <div className="mt-3 space-y-3">
+              {listing.photoUrls && listing.photoUrls.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto">
+                  {listing.photoUrls.slice(1).map((url, index) => (
+                    <VehicleImage key={url} photoUrl={url} name={`${name}, photo ${index + 2}`} type={listing.vehicleType} color={listing.color} className="aspect-[3/2] w-36" sizes="9rem" />
+                  ))}
+                </div>
+              )}
+              {listing.description && <p>{listing.description}</p>}
+              <dl className="space-y-1">
+                {listing.price.lines.map((line) => (
+                  <div key={line.code} className="flex justify-between gap-4"><dt>{line.label}</dt><dd>{formatCents(line.cents)}</dd></div>
+                ))}
+                <div className="flex justify-between gap-4 border-t pt-1 font-bold"><dt>Total</dt><dd>{formatCents(listing.price.totalCents)}</dd></div>
+                <div className="flex justify-between gap-4"><dt>Due at provider checkout</dt><dd>{formatCents(listing.price.dueNowCents)}</dd></div>
+                {listing.price.depositCents > 0 && <div className="flex justify-between gap-4"><dt>Deposit</dt><dd>{formatCents(listing.price.depositCents)}</dd></div>}
+              </dl>
+              <p><strong>Checkout:</strong> {listing.checkoutDetails}</p>
+              <p><strong>Cancellation:</strong> {listing.cancellationPolicy}</p>
+              {listing.termsUrl && <a href={listing.termsUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-brand underline">Provider terms</a>}
+              <p className="text-xs text-gray-500">Price and availability are supplied by {listing.providerName} and must be confirmed on its checkout page.</p>
+            </div>
+          </details>
+        )}
         <p className="flex flex-wrap gap-2 pt-1">
           {listing.cancellationPolicy === "free_24h" && <Badge tone="green">Free cancellation</Badge>}
           {listing.exactMatch ? <Badge tone="blue">Exact vehicle</Badge> : <Badge tone="amber">Or similar</Badge>}
@@ -79,6 +107,22 @@ export function VehicleCard({ listing, trip }: { listing: VehicleListing; trip: 
             <div className="mt-1">
               <CompareToggle id={listing.id} name={`${listing.make} ${listing.model}`} pickup={trip.pickup} ret={trip.ret} location={trip.location} />
             </div>
+          </>
+        ) : listing.sourceUrl ? (
+          <>
+            <form action={startExternalDemoAction}>
+              <input type="hidden" name="providerKey" value={listing.providerKey} />
+              <input type="hidden" name="listingId" value={listing.providerListingId} />
+              <input type="hidden" name="location" value={trip.location} />
+              <input type="hidden" name="pickup" value={trip.pickup} />
+              <input type="hidden" name="return" value={trip.ret} />
+              <input type="hidden" name="radius" value={trip.radius ?? 25} />
+              <button type="submit" className={`${btnPrimary} mt-1 w-full md:w-auto`}>Try demo checkout</button>
+            </form>
+            <a href={listing.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-brand underline">
+              View original listing<span className="sr-only">: {name}</span>
+            </a>
+            <p className="text-xs text-gray-600">Demo checkout makes no provider reservation or payment. To rent, book with the provider.</p>
           </>
         ) : (
           <p className="text-xs text-gray-600">

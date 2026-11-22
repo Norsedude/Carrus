@@ -13,6 +13,7 @@ const serverSchema = z.object({
   APP_ENV: z.enum(["development", "test", "preview", "production"]).default("development"),
   PAYMENT_MODE: z.enum(["simulated"]).default("simulated"),
   PROVIDER_MODE: z.enum(["native", "native+demo"]).default("native"),
+  PARTNER_FEEDS_JSON: z.string().optional(),
   CARRUS_FIXED_NOW: z.iso.datetime().optional(),
 });
 
@@ -55,6 +56,7 @@ export function serverEnv(): ServerEnv {
       APP_ENV: process.env.APP_ENV || undefined,
       PAYMENT_MODE: process.env.PAYMENT_MODE || undefined,
       PROVIDER_MODE: process.env.PROVIDER_MODE || undefined,
+      PARTNER_FEEDS_JSON: process.env.PARTNER_FEEDS_JSON || undefined,
       CARRUS_FIXED_NOW: process.env.CARRUS_FIXED_NOW || undefined,
     });
     if (!parsed.success) fail("server", parsed.error);

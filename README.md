@@ -16,6 +16,7 @@ People need temporary access to vehicles when they are traveling or when their p
 - `docs/DECISIONS.md` — decisions made and proposed defaults awaiting approval
 - `docs/OPEN_QUESTIONS.md` — questions for the team
 - `docs/TEST_MATRIX.md` — acceptance test IDs and their current status
+- `docs/DEPLOYMENT.md` — private hosted deployment and automatic updates from `main`
 
 ## Tech stack
 
@@ -75,6 +76,8 @@ Nothing is hosted. Each person who runs the project gets their own separate data
 
 ### By hand
 
+For the new external demo checkout, follow [docs/PARTNER_FEEDS.md](docs/PARTNER_FEEDS.md#test-the-external-demo-checkout-locally). It uses fictional source listings and never makes a provider reservation.
+
 1. Start everything as described in "Run it locally" and open http://localhost:3000.
 2. Sign in as `test.customer@carrus.test`, search **San Jose, CA**, add up to three vehicles to Compare, pick one, and check out with `4242 4242 4242 4242` (any future expiry, any CVC). The booking appears under **Trips**.
 3. Try `4000 0000 0000 0002` to see a declined payment: no reservation is created.
@@ -86,7 +89,7 @@ To follow the written test cases (TC-S01, TC-B01 and so on) exactly, load their 
 ### Automated
 
 ```bash
-npm test                  # 46 logic tests, no database needed
+npm test                  # logic tests, no database needed
 npm run test:integration  # 24 database tests; needs local Supabase running
 npx playwright install chromium   # first time only
 npm run test:e2e          # 13 browser tests

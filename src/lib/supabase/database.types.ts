@@ -23,6 +23,19 @@ export type Database = {
           }
         },"public": {
           Tables: {
+            "external_demo_orders": {
+                  Row: {
+                    "id": string,"customer_id": string,"provider_key": string,"provider_name": string,"provider_listing_id": string,"source_url": string,"pickup_at": string,"return_at": string,"search_lat": number,"search_lng": number,"search_radius_miles": number,"listing_snapshot": NonNullable<Json>,"total_cents": number,"state": string,"contact_name": string | null,"contact_phone": string | null,"demo_reference": string | null,"expires_at": string,"created_at": string,"confirmed_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"customer_id": string,"provider_key": string,"provider_name": string,"provider_listing_id": string,"source_url": string,"pickup_at": string,"return_at": string,"search_lat": number,"search_lng": number,"search_radius_miles": number,"listing_snapshot": NonNullable<Json>,"total_cents": number,"state"?: string,"contact_name"?: string | null,"contact_phone"?: string | null,"demo_reference"?: string | null,"expires_at"?: string,"created_at"?: string,"confirmed_at"?: string | null
+                  }
+                  Update: {
+                    "id"?: string,"customer_id"?: string,"provider_key"?: string,"provider_name"?: string,"provider_listing_id"?: string,"source_url"?: string,"pickup_at"?: string,"return_at"?: string,"search_lat"?: number,"search_lng"?: number,"search_radius_miles"?: number,"listing_snapshot"?: NonNullable<Json>,"total_cents"?: number,"state"?: string,"contact_name"?: string | null,"contact_phone"?: string | null,"demo_reference"?: string | null,"expires_at"?: string,"created_at"?: string,"confirmed_at"?: string | null
+                  }
+                  Relationships: []
+                },
             "audit_events": {
                   Row: {
                     "action": string,"actor_id": string | null,"created_at": string,"id": number,"reason": string | null,"target_id": string,"target_type": string

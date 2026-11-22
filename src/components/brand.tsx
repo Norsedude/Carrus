@@ -2,7 +2,7 @@ import Image from "next/image";
 
 /** Carrus wordmark supplied by the team (public/carrus-logo.png, transparent background). */
 export function Logo({ className = "h-8 w-auto" }: { className?: string }) {
-  return <Image src="/carrus-logo.png" alt="Carrus" width={688} height={160} priority className={className} />;
+  return <Image src="/carrus-logo.png" alt="Carrus" width={688} height={160} priority unoptimized className={className} />;
 }
 
 const PAINT: Record<string, string> = {
@@ -63,7 +63,7 @@ export function VehicleImage({
   return (
     <div className={`relative shrink-0 overflow-hidden rounded-lg bg-gray-100 ${className}`}>
       {photoUrl ? (
-        <Image src={photoUrl} alt={`${name}${color ? `, ${color.toLowerCase()}` : ""}`} fill sizes={sizes} priority={priority} className="object-cover" />
+        <Image src={photoUrl} alt={`${name}${color ? `, ${color.toLowerCase()}` : ""}`} fill sizes={sizes} priority={priority} unoptimized={photoUrl.startsWith("https://")} className="object-cover" />
       ) : (
         <VehicleArt type={type} color={color} className="absolute inset-0 size-full" />
       )}

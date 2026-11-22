@@ -46,7 +46,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
   const db = await createClient();
   const result = await runSearch(criteria, enabledAdapters(db, serverEnv().PROVIDER_MODE));
-  const trip = { pickup: criteria.pickupLocal, ret: criteria.returnLocal, location: criteria.locationLabel };
+  const trip = { pickup: criteria.pickupLocal, ret: criteria.returnLocal, location: criteria.locationLabel, radius: criteria.radiusMiles };
 
   const hrefWith = (changes: Record<string, string>) => {
     const params = new URLSearchParams();
@@ -156,6 +156,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           {result.warnings.map((w) => (
             <Notice key={w} tone="info">{w}</Notice>
           ))}
+          {one(raw.external) === "unavailable" && (
+            <Notice tone="warning">That provider offer could not be checked right now. No demo checkout was started.</Notice>
+          )}
 
           {!result.allSourcesFailed && result.resultCount === 0 && (
             <div className={`${cardCls} p-8`} data-testid="empty-results">

@@ -20,7 +20,7 @@ const SOURCES: { name: string; className: string }[] = [
   { name: "priceline", className: "font-bold lowercase" },
 ];
 
-export function SourcesMarquee() {
+export function SourcesMarquee({ connectedSources = [] }: { connectedSources?: string[] }) {
   const [paused, setPaused] = useState(false);
   return (
     <section aria-labelledby="sources-heading">
@@ -52,8 +52,9 @@ export function SourcesMarquee() {
         </ul>
       </div>
       <p className="mt-4 text-sm text-gray-500">
-        Planned sources. This prototype is not connected to or affiliated with these companies yet; vehicles shown come from
-        Carrus Rental Partners.
+        These are planned sources, not endorsements or partnerships. {connectedSources.length > 0
+          ? `Configured listing feeds: ${connectedSources.join(", ")}. Provider bookings take place on the provider website.`
+          : "This prototype is not connected to or affiliated with these companies yet; vehicles shown come from Carrus Rental Partners."}
       </p>
     </section>
   );

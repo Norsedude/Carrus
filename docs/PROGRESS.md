@@ -5,6 +5,14 @@ Source brief: `CARRUS_HANDOFF.md` (supplied by Mateo in chat on 2026-11-14; not 
 
 ## Status as of 2026-11-14
 
+### Partner feed connector (2026-11-21)
+
+- Added an opt-in, server-side JSON feed adapter for authorized rental sources (`PARTNER_FEEDS_JSON`). It validates freshness, all-in USD price lines, allowed checkout/terms/photo hosts, and normalizes offers into search results. External cards show photos, descriptions, price breakdown, checkout and cancellation details, then link to the provider's checkout.
+- No named rental company is connected; the home-page source names remain planned sources. The connector requires an approved feed endpoint and credentials. External offers cannot enter Carrus checkout, because no partner booking API is configured. See `docs/PARTNER_FEEDS.md`.
+- Verified with lint, typecheck, 49 unit tests, and production build. The production build required network access to fetch the existing Cardo font.
+- Added a separate external **demo checkout**: offer review, test-card validation, quote freshness and price recheck, simulated confirmation, original listing link, and demo history under Trips. Its records live in `external_demo_orders` and never create native bookings or provider reservations. Migration `20261121000001` is ready but could not be applied locally because Docker Desktop was not running during this work.
+- `PROVIDER_MODE=native+demo` now supplies two fictional offers with complete example prices and links to Carrus-owned fictional source pages, so the demo checkout can be exercised locally without partner credentials. No outside company data is used.
+
 Branch `feat/milestone-a` (local only, not pushed). Stack: Next.js 16 + local Supabase (see DECISIONS D-001).
 
 Last full check run (2026-11-14, after the restyle): lint clean, typecheck clean, 46 unit tests, 24 integration tests, 13 browser tests, production build. All passed.
@@ -36,7 +44,7 @@ Last full check run (2026-11-14, after the restyle): lint clean, typecheck clean
 
 - **Payments:** simulated adapter only. Accepts three demo test cards, stores no card data, moves no money.
 - **Location search:** built-in list of ten Bay Area places, not a live geocoder.
-- **External rental sources:** none integrated. A fictional "Demo rental source" adapter exists behind `PROVIDER_MODE=native+demo` (off by default) and cannot be booked.
+- **External rental sources:** none integrated. A fictional "Demo rental source" adapter exists behind `PROVIDER_MODE=native+demo` (off by default) and supports only simulated checkout.
 - **Vehicle images:** generic illustrations tinted by color. Photo upload is not built.
 - **Booked revenue** on the partner dashboard is a sum of simulated payments; no payout ledger.
 - **Emails:** only Supabase Auth emails, caught locally by Mailpit. No booking notifications.

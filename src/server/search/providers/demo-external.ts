@@ -4,12 +4,12 @@ import type { VehicleListing } from "@/server/search/types";
 
 // MOCK ADAPTER. Represents rental sources Carrus is not integrated with.
 // Enabled only when PROVIDER_MODE=native+demo. Listings are fictional, are
-// labeled "Demo rental source" in the UI, cannot be booked on Carrus, and
-// carry an incomplete price because the source's mandatory fees are unknown.
+// labeled "Demo rental source" in the UI. They support the simulated
+// external checkout and link to a Carrus-owned fictional source page.
 
 const SJC = { lat: 37.3639, lng: -121.9289 };
 
-const DEMO: { id: string; make: string; model: string; year: number; type: VehicleListing["vehicleType"]; seats: number; dailyCents: number; miles: number; bearing: number }[] = [
+export const DEMO: { id: string; make: string; model: string; year: number; type: VehicleListing["vehicleType"]; seats: number; dailyCents: number; miles: number; bearing: number }[] = [
   { id: "DEMO-EXT-1", make: "Nissan", model: "Altima", year: 2023, type: "Sedan", seats: 5, dailyCents: 5500, miles: 0.4, bearing: 40 },
   { id: "DEMO-EXT-2", make: "Jeep", model: "Compass", year: 2023, type: "SUV", seats: 5, dailyCents: 7400, miles: 0.6, bearing: 200 },
 ];
@@ -23,6 +23,8 @@ export const demoExternalAdapter: ProviderAdapter = {
     const days = Math.max(1, Math.ceil((query.returnAt.getTime() - query.pickupAt.getTime()) / 86_400_000));
     return DEMO.map((d): VehicleListing => {
       const baseCents = d.dailyCents * days;
+      const feesCents = 3000;
+      const totalCents = baseCents + feesCents;
       return {
         id: `demo-external:${d.id}`,
         providerKey: "demo-external",
@@ -39,7 +41,7 @@ export const demoExternalAdapter: ProviderAdapter = {
         vehicleType: d.type,
         seats: d.seats,
         transmission: "Automatic",
-        description: "Fictional listing used to demonstrate how an external rental source would appear.",
+        description: "Fictional listing used to test an external-source demo checkout. No vehicle is offered for rent.",
         locationLabel: "Near San José Mineta International Airport",
         coordinates: offsetByMiles(SJC, d.miles, d.bearing),
         timeZone: "America/Los_Angeles",
@@ -49,21 +51,27 @@ export const demoExternalAdapter: ProviderAdapter = {
         pricingPolicyId: null,
         partner: null,
         bookingMode: "instant",
-        cancellationPolicy: "unknown",
+        cancellationPolicy: "Fictional demo policy: no real reservation is created.",
+        sourceUrl: `/demo-source/${d.id}`,
+        termsUrl: `/demo-source/${d.id}#terms`,
+        checkoutDetails: "Carrus demo only. The fictional source has no payment or booking service.",
         price: {
           currency: "USD",
           billableDays: days,
           dailyRateCents: d.dailyCents,
           baseCents,
-          mandatoryFeesCents: 0,
+          mandatoryFeesCents: feesCents,
           protectionCents: 0,
           taxCents: 0,
-          totalCents: baseCents,
+          totalCents,
           depositCents: 0,
-          dueNowCents: 0,
-          complete: false,
-          policyVersion: "external-unknown",
-          lines: [{ code: "base", label: `${days} day${days === 1 ? "" : "s"} × daily rate`, cents: baseCents }],
+          dueNowCents: totalCents,
+          complete: true,
+          policyVersion: "fictional-demo",
+          lines: [
+            { code: "base", label: `${days} day${days === 1 ? "" : "s"} × daily rate`, cents: baseCents },
+            { code: "fees", label: "Fictional taxes and fees", cents: feesCents },
+          ],
           conditionalCharges: [],
         },
         lastUpdated: new Date().toISOString(),
