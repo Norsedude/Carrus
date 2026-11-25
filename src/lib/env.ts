@@ -14,6 +14,7 @@ const serverSchema = z.object({
   PAYMENT_MODE: z.enum(["simulated"]).default("simulated"),
   PROVIDER_MODE: z.enum(["native", "native+demo"]).default("native"),
   PARTNER_FEEDS_JSON: z.string().optional(),
+  PUBLIC_DEMO_LISTINGS: z.enum(["true", "false"]).default("false"),
   CARRUS_FIXED_NOW: z.iso.datetime().optional(),
 });
 
@@ -57,6 +58,7 @@ export function serverEnv(): ServerEnv {
       PAYMENT_MODE: process.env.PAYMENT_MODE || undefined,
       PROVIDER_MODE: process.env.PROVIDER_MODE || undefined,
       PARTNER_FEEDS_JSON: process.env.PARTNER_FEEDS_JSON || undefined,
+      PUBLIC_DEMO_LISTINGS: process.env.PUBLIC_DEMO_LISTINGS || undefined,
       CARRUS_FIXED_NOW: process.env.CARRUS_FIXED_NOW || undefined,
     });
     if (!parsed.success) fail("server", parsed.error);

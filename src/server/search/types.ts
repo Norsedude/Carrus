@@ -38,6 +38,16 @@ export type SearchCriteria = {
 
 export type BookingCapability = "native_booking" | "redirect";
 
+export type PhotoCredit = {
+  url: string;
+  title: string;
+  author: string;
+  license: string;
+  licenseUrl?: string;
+  /** Page where the photo and its license are published. */
+  sourceUrl: string;
+};
+
 export type VehicleListing = {
   /** Provider identity + provider listing id, so unrelated cars are never merged. */
   id: string;
@@ -72,6 +82,8 @@ export type VehicleListing = {
   sourceUrl?: string;
   termsUrl?: string;
   photoUrls?: string[];
+  /** Required attribution for a freely licensed photo (e.g. Wikimedia Commons). */
+  photoCredit?: PhotoCredit;
   checkoutDetails?: string;
   lastUpdated: string;
 };

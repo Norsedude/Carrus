@@ -3,6 +3,7 @@ import { startExternalDemoAction } from "@/app/actions/external-demo";
 import { Building2, MapPin, UserRound } from "lucide-react";
 import { VehicleImage } from "@/components/brand";
 import { CompareToggle } from "@/components/compare";
+import { PhotoCredit } from "@/components/photo-credit";
 import { Badge, btnPrimary, cardCls } from "@/components/ui";
 import { formatCents } from "@/lib/money";
 import type { VehicleListing } from "@/server/search/types";
@@ -25,14 +26,17 @@ export function VehicleCard({ listing, trip }: { listing: VehicleListing; trip: 
   const days = listing.price.billableDays;
   return (
     <li className={`${cardCls} flex flex-col gap-5 p-4 md:flex-row`} data-testid="vehicle-card" data-code={listing.publicCode}>
-      <VehicleImage
-        photoUrl={listing.photoUrl}
-        name={name}
-        type={listing.vehicleType}
-        color={listing.color}
-        className="aspect-[3/2] w-full md:w-64"
-        sizes="(min-width: 768px) 16rem, 100vw"
-      />
+      <div className="w-full shrink-0 md:w-64">
+        <VehicleImage
+          photoUrl={listing.photoUrl}
+          name={name}
+          type={listing.vehicleType}
+          color={listing.color}
+          className="aspect-[3/2] w-full"
+          sizes="(min-width: 768px) 16rem, 100vw"
+        />
+        <PhotoCredit credit={listing.photoCredit} className="mt-1.5 break-words" />
+      </div>
       <div className="min-w-0 flex-1 space-y-1.5">
         <h3 className="text-2xl font-bold text-gray-900">
           {listing.make} {listing.model}
@@ -120,7 +124,7 @@ export function VehicleCard({ listing, trip }: { listing: VehicleListing; trip: 
               <button type="submit" className={`${btnPrimary} mt-1 w-full md:w-auto`}>Try demo checkout</button>
             </form>
             <a href={listing.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-brand underline">
-              View original listing<span className="sr-only">: {name}</span>
+              {listing.isMockSource ? "Demo listing details" : "View original listing"}<span className="sr-only">: {name}</span>
             </a>
             <p className="text-xs text-gray-600">Demo checkout makes no provider reservation or payment. To rent, book with the provider.</p>
           </>

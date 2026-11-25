@@ -2,6 +2,7 @@ import type { Json } from "@/lib/supabase/database.types";
 import type { Db } from "@/server/vehicles/repository";
 import { configuredPartnerAdapters } from "@/server/search/providers/partner-feed";
 import { demoExternalAdapter } from "@/server/search/providers/demo-external";
+import { publicDemoAdapter, publicDemoEnabled } from "@/server/search/providers/public-demo";
 import type { ProviderQuery } from "@/server/search/gateway";
 import type { VehicleListing } from "@/server/search/types";
 import { chargeSimulated } from "@/server/payments/simulated";
@@ -32,6 +33,7 @@ export type ExternalDemoOrder = {
 export async function freshExternalListing(key: string, listingId: string, query: ProviderQuery): Promise<VehicleListing | null> {
   const adapters = configuredPartnerAdapters();
   if (process.env.PROVIDER_MODE === "native+demo") adapters.push(demoExternalAdapter);
+  if (publicDemoEnabled()) adapters.push(publicDemoAdapter);
   const adapter = adapters.find((source) => source.key === key);
   if (!adapter) return null;
   const listings = await adapter.search(query);

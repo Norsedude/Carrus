@@ -3,6 +3,7 @@ import { applyFilters, sortListings } from "@/server/search/filter";
 import { fetchListings, type ProviderAdapter } from "@/server/search/gateway";
 import { demoExternalAdapter } from "@/server/search/providers/demo-external";
 import { configuredPartnerAdapters } from "@/server/search/providers/partner-feed";
+import { publicDemoAdapter, publicDemoEnabled } from "@/server/search/providers/public-demo";
 import { PAGE_SIZE, type SearchCriteria, type SearchResponse } from "@/server/search/types";
 import { availableVehicleIds, getVehicleRows, toListing, type Db } from "@/server/vehicles/repository";
 
@@ -24,6 +25,7 @@ export function nativeAdapter(db: Db): ProviderAdapter {
 export function enabledAdapters(db: Db, providerMode: "native" | "native+demo"): ProviderAdapter[] {
   const adapters = [nativeAdapter(db)];
   if (providerMode === "native+demo") adapters.push(demoExternalAdapter);
+  if (publicDemoEnabled()) adapters.push(publicDemoAdapter);
   adapters.push(...configuredPartnerAdapters());
   return adapters;
 }
@@ -36,6 +38,7 @@ export async function runSearch(criteria: SearchCriteria, adapters: ProviderAdap
     returnAt: criteria.returnAt,
     coordinates: criteria.coordinates,
     radiusMiles: criteria.radiusMiles,
+    timeZone: criteria.timeZone,
   });
   const matches = sortListings(applyFilters(gateway.listings, criteria), criteria.sort);
   const pageCount = Math.max(1, Math.ceil(matches.length / PAGE_SIZE));

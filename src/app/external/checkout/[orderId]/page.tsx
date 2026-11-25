@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DemoCheckoutForm } from "./demo-checkout-form";
 import { VehicleImage } from "@/components/brand";
+import { PhotoCredit } from "@/components/photo-credit";
 import { Notice, PageShell, cardCls } from "@/components/ui";
 import { requireUser } from "@/lib/auth/session";
 import { getNow } from "@/lib/clock";
@@ -37,6 +38,7 @@ export default async function ExternalDemoCheckoutPage({ params }: { params: Pro
         </section>
         <aside className={`${cardCls} h-fit space-y-4 p-5`}>
           <VehicleImage photoUrl={listing.photoUrl} name={`${listing.make} ${listing.model}`} type={listing.vehicleType} color={listing.color} className="aspect-[3/2] w-full" />
+          <PhotoCredit credit={listing.photoCredit} className="-mt-2 break-words" />
           <h2 className="text-xl font-bold">{listing.year} {listing.make} {listing.model}</h2>
           <p className="text-sm">{listing.exactMatch ? "Exact vehicle" : "Or similar"} · {listing.seats} seats · {listing.transmission}</p>
           <p className="text-sm">{formatDateTime(order.pickup_at, listing.timeZone)} to {formatDateTime(order.return_at, listing.timeZone)}</p>

@@ -9,6 +9,8 @@ export type ProviderQuery = {
   returnAt: Date;
   coordinates: Coordinates;
   radiusMiles: number;
+  /** IANA time zone of the searched location, when known. */
+  timeZone?: string;
 };
 
 export interface ProviderAdapter {

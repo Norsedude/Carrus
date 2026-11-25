@@ -24,6 +24,7 @@ Set these for **Production** in Vercel project settings before the first deploym
 | `APP_ENV` | `production` |
 | `PAYMENT_MODE` | `simulated` |
 | `PROVIDER_MODE` | `native+demo` for fictional external checkout examples, or `native` |
+| `PUBLIC_DEMO_LISTINGS` | `true` to show free open-data demo listings (NHTSA models, Wikimedia Commons photos, demo prices) near every search; omit or `false` to hide them |
 | `SITE_ACCESS_PASSWORD_HASH` | Hash generated in step 5 |
 | `SITE_ACCESS_SESSION_SECRET` | Session secret generated in step 5 |
 

@@ -29,7 +29,7 @@ export async function startExternalDemoAction(form: FormData) {
   try {
     orderId = await createExternalDemoOrder(createAdminClient(), {
       userId: user.id, providerKey, listingId,
-      query: { pickupAt: criteria.pickupAt, returnAt: criteria.returnAt, coordinates: criteria.coordinates, radiusMiles: criteria.radiusMiles },
+      query: { pickupAt: criteria.pickupAt, returnAt: criteria.returnAt, coordinates: criteria.coordinates, radiusMiles: criteria.radiusMiles, timeZone: criteria.timeZone },
     });
   } catch {
     redirect(`${searchUrl}&external=unavailable`);

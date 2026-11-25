@@ -4,9 +4,19 @@
 
 The app includes two **fictional** external listings so this flow can be tested without partner credentials. Start Docker Desktop, then run `npm run db:start` and `npm run db:migrate`. Ensure the existing `.env.local` has the local Supabase keys (see README); set `PROVIDER_MODE=native+demo` and restart `npm run dev`. If the local database does not have the fixture customer, run `npm run seed:demo` first. That seed resets local app data and fixture users.
 
-Open `http://localhost:3000`, sign in as `test.customer@carrus.test` with `Test#1234`, and search San Jose, CA with future dates. The Nissan Altima and Jeep Compass cards should say **Demo rental source**. Open **View original listing** to see the Carrus-owned fictional source page. Return to search and choose **Try demo checkout**. Use `4242 4242 4242 4242`, any future MM/YY, any three-digit security code and five-digit ZIP. The confirmation and Trips entry must say that no provider reservation or real payment was made. Use `4000 0000 0000 0002` to test a decline.
+Open `http://localhost:3000`, sign in as `test.customer@carrus.test` with `Test#1234`, and search San Jose, CA with future dates. The Nissan Altima and Jeep Compass cards should say **Demo rental source**. Open **Demo listing details** to see the Carrus-owned fictional source page. Return to search and choose **Try demo checkout**. Use `4242 4242 4242 4242`, any future MM/YY, any three-digit security code and five-digit ZIP. The confirmation and Trips entry must say that no provider reservation or real payment was made. Use `4000 0000 0000 0002` to test a decline.
 
 On PowerShell systems that block `npm.ps1`, use `npm.cmd` and `npx.cmd` in these commands. Use `http://localhost:3000` for the browser, matching the app's sign-in cookies.
+
+## Free open-data demo listings
+
+Set `PUBLIC_DEMO_LISTINGS=true` (locally in `.env.local`, or in Vercel and then redeploy) to add about a dozen demo listings near any supported search location. They use only free, openly usable sources and need no keys:
+
+- **Vehicles:** common rental models, each checked against the [NHTSA vPIC API](https://vpic.nhtsa.dot.gov/api/) for model year 2024. NHTSA data is U.S. government public-domain data. If NHTSA does not list a model, it is skipped; if NHTSA is unreachable, the curated list is used.
+- **Photos:** the Wikimedia Commons API is searched for each model, and only images under CC0, CC BY, CC BY-SA or public-domain licenses are used. Every card, details page and checkout shows the photo title, author, license and Commons link, as those licenses require. Photos are shown unmodified and link to the Commons original.
+- **Price, pickup point and availability:** generated deterministically for the demo and labeled *Demo rental source*. Demo checkout works the same way as the fictional listings above and creates no reservation or payment.
+
+Lookups are cached for a day and each is capped at 2.5 seconds; when a lookup is slow the listing still appears with drawn artwork instead of a photo. No rental company website is scraped or contacted. Scraping sites such as Turo, Enterprise, Hertz or Kayak is against their terms and is deliberately not supported.
 
 ## Connect an authorized feed
 
