@@ -1,57 +1,345 @@
 @import "tailwindcss";
 
-/* Design tokens from the Figma mockup ("Carrus v2"): Cardo everywhere,
-   near-black text, one royal-blue accent, hairline borders, soft surfaces. */
+/* ------------------------------------------------------------------------
+   Carrus v3 — brutalist luxury, Swiss minimal.
+   Neutral off-white / deep-black palette, one soft accent the user can pick,
+   heavy geometric display type (Clash Display) over a clean grotesk (Satoshi).
+   Every color below is a CSS variable so light, dark and "system" themes
+   restyle the whole app, including pages that use Tailwind gray/white classes.
+   ------------------------------------------------------------------------ */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme inline {
-  --font-sans: var(--font-cardo), "Cardo", Georgia, "Times New Roman", serif;
-  --font-serif: var(--font-cardo), "Cardo", Georgia, "Times New Roman", serif;
-  --color-brand: #3f5efb;
-  --color-brand-dark: #2f49d6;
-  --color-brand-soft: #eef1ff;
-  --color-ink: #111827;
-  --color-surface: #f7f8fa;
-  --color-night: #0b1020;
+  --font-sans: "Satoshi", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Clash Display", "Satoshi", ui-sans-serif, system-ui, sans-serif;
+
+  /* Surfaces & ink */
+  --color-surface: var(--c-surface);
+  --color-white: var(--c-card);
+  --color-ink: var(--g-900);
+  --color-snow: #fafafa; /* fixed light text on photos / always-dark panels */
+  --color-night: var(--c-night);
+
+  /* Primary actions are ink-on-paper and invert in dark mode. */
+  --color-brand: var(--c-brand);
+  --color-brand-dark: var(--c-brand-hover);
+  --color-brand-soft: var(--c-brand-soft);
+  --color-brand-contrast: var(--c-brand-contrast);
+
+  /* User-selectable accent for highlights, focus and active states. */
+  --color-accent: var(--c-accent);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-accent-contrast: var(--c-accent-contrast);
+
+  /* Neutral scale (remapped so existing gray-* classes follow the theme). */
+  --color-gray-50: var(--g-50);
+  --color-gray-100: var(--g-100);
+  --color-gray-200: var(--g-200);
+  --color-gray-300: var(--g-300);
+  --color-gray-400: var(--g-400);
+  --color-gray-500: var(--g-500);
+  --color-gray-600: var(--g-600);
+  --color-gray-700: var(--g-700);
+  --color-gray-800: var(--g-800);
+  --color-gray-900: var(--g-900);
+  --color-gray-950: var(--g-950);
+
+  /* Muted semantic tones that stay readable in both themes. */
+  --color-red-50: var(--r-50);
+  --color-red-300: var(--r-300);
+  --color-red-600: var(--r-600);
+  --color-red-700: var(--r-700);
+  --color-red-900: var(--r-900);
+  --color-amber-50: var(--a-50);
+  --color-amber-100: var(--a-100);
+  --color-amber-300: var(--a-300);
+  --color-amber-800: var(--a-800);
+  --color-amber-900: var(--a-900);
+  --color-amber-950: var(--a-950);
+  --color-emerald-50: var(--e-50);
+  --color-emerald-100: var(--e-100);
+  --color-emerald-200: var(--e-200);
+  --color-emerald-700: var(--e-700);
+  --color-emerald-800: var(--e-800);
+  --color-emerald-900: var(--e-900);
+  --color-emerald-950: var(--e-950);
+
+  --ease-luxe: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Cardo runs small; the mockup sets body copy at 17px. */
+/* ------------------------------------------------------------ light theme */
+:root {
+  color-scheme: light;
+  --c-surface: #f3f3f1;
+  --c-card: #ffffff;
+  --c-night: #111111;
+  --c-brand: #111111;
+  --c-brand-hover: #2b2b2b;
+  --c-brand-soft: #e6e6e3;
+  --c-brand-contrast: #f7f7f5;
+
+  --g-50: #f8f8f7;
+  --g-100: #efefed;
+  --g-200: #e1e1de;
+  --g-300: #cfcfcb;
+  --g-400: #a3a39f;
+  --g-500: #696966;
+  --g-600: #545451;
+  --g-700: #3d3d3b;
+  --g-800: #2c2c2b;
+  --g-900: #1a1a1a;
+  --g-950: #070707;
+
+  --r-50: #fbefed; --r-300: #e7b3ab; --r-600: #b83a2a; --r-700: #9d2f22; --r-900: #5e1c14;
+  --a-50: #faf4e6; --a-100: #f3e7c6; --a-300: #dcc183; --a-800: #6b5016; --a-900: #574112; --a-950: #33260a;
+  --e-50: #edf5ef; --e-100: #d8eadc; --e-200: #b9d8c0; --e-700: #2f6b41; --e-800: #255635; --e-900: #1c4128; --e-950: #10261a;
+
+  --hairline: rgb(17 17 17 / 0.1);
+  --shadow-soft: 0 1px 0 rgb(17 17 17 / 0.04), 0 12px 32px -18px rgb(17 17 17 / 0.25);
+}
+
+/* Accent presets (data-accent on <html>). "cobalt" is the default. */
+:root { --c-accent-contrast: #ffffff; }
+:root, [data-accent="cobalt"] { --c-accent: #3550c8; --c-accent-soft: #e8ecfc; }
+[data-accent="graphite"] { --c-accent: #3d3d3b; --c-accent-soft: #e6e6e3; }
+[data-accent="sand"] { --c-accent: #8a6a3b; --c-accent-soft: #f1e9dc; }
+[data-accent="sage"] { --c-accent: #4f6b55; --c-accent-soft: #e3ece4; }
+[data-accent="clay"] { --c-accent: #a5523a; --c-accent-soft: #f6e5df; }
+
+/* ------------------------------------------------------------- dark theme */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --c-surface: #121212;
+  --c-card: #1a1a1a;
+  --c-night: #1f1f1f;
+  --c-brand: #f2f2f2;
+  --c-brand-hover: #ffffff;
+  --c-brand-soft: #262626;
+  --c-brand-contrast: #111111;
+
+  --g-50: #1c1c1c;
+  --g-100: #222222;
+  --g-200: #2f2f2f;
+  --g-300: #3e3e3e;
+  --g-400: #5e5e5c;
+  --g-500: #9a9a96;
+  --g-600: #b1b1ad;
+  --g-700: #c9c9c5;
+  --g-800: #d6d6d2;
+  --g-900: #ececea;
+  --g-950: #fafafa;
+
+  --r-50: #2a1613; --r-300: #6b2e25; --r-600: #f08d7e; --r-700: #f4a596; --r-900: #fbd3cb;
+  --a-50: #29210f; --a-100: #3a2e12; --a-300: #6e5622; --a-800: #e9cf8f; --a-900: #f0dca8; --a-950: #f7ebc9;
+  --e-50: #13241a; --e-100: #183022; --e-200: #24452f; --e-700: #8fd0a2; --e-800: #a7dcb6; --e-900: #c3e9cd; --e-950: #e0f4e5;
+
+  --hairline: rgb(242 242 242 / 0.1);
+  --shadow-soft: 0 1px 0 rgb(0 0 0 / 0.4), 0 16px 40px -20px rgb(0 0 0 / 0.8);
+}
+[data-theme="dark"] { --c-accent-contrast: #111111; }
+[data-theme="dark"][data-accent="graphite"] { --c-accent: #d9d9d5; --c-accent-soft: #2a2a2a; }
+[data-theme="dark"]:not([data-accent]) { --c-accent: #9aaeff; --c-accent-soft: #1c2240; }
+[data-theme="dark"][data-accent="sand"] { --c-accent: #d8b67f; --c-accent-soft: #2e2618; }
+[data-theme="dark"][data-accent="sage"] { --c-accent: #9cc3a3; --c-accent-soft: #1d2a20; }
+[data-theme="dark"][data-accent="cobalt"] { --c-accent: #9aaeff; --c-accent-soft: #1c2240; }
+[data-theme="dark"][data-accent="clay"] { --c-accent: #eb9a80; --c-accent-soft: #33201a; }
+
+/* ------------------------------------------------------------------ base */
+@layer base {
 html {
-  font-size: 106.25%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 103%; /* ~16.5px: easier on the eyes for long sessions */
 }
 
 body {
-  background: var(--color-surface);
-  color: var(--color-ink);
-  font-feature-settings: "kern", "liga", "onum" 0, "lnum";
+  background: var(--c-surface);
+  color: var(--g-800);
+  line-height: 1.6;
+  font-feature-settings: "kern", "liga";
   text-rendering: optimizeLegibility;
+  transition: background-color 400ms var(--ease-soft), color 400ms var(--ease-soft);
 }
 
+/* Display face only for the big headlines; smaller headings use Satoshi,
+   which reads more calmly. Moderate weights and tracking reduce fatigue. */
 h1,
-h2,
-h3 {
-  letter-spacing: -0.01em;
+h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  color: var(--g-900);
 }
+h1 { font-weight: 500; }
+h3 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+p { text-wrap: pretty; }
+h1, h2, h3 { text-wrap: balance; }
 
 ::selection {
-  background: #dbe2ff;
+  background: var(--c-brand);
+  color: var(--c-brand-contrast);
 }
 
+:focus-visible {
+  outline-color: var(--c-accent);
+}
+
+/* Smooth, quiet interaction everywhere. */
+a,
+button,
+input,
+select,
+textarea,
+summary,
+label {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: 220ms;
+  transition-timing-function: var(--ease-soft);
+}
+
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  accent-color: var(--c-brand);
+}
+}
+
+@layer components {
+[data-theme="dark"] .logo-invert {
+  filter: invert(1);
+}
+
+/* Hairline utility used by the brutalist cards. */
+.hairline {
+  border-color: var(--hairline);
+}
+}
+
+/* -------------------------------------------------------------- motion */
+@layer components {
 @keyframes carrus-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track { animation: carrus-marquee 36s linear infinite; }
+.marquee-paused .marquee-track { animation-play-state: paused; }
+
+/* Route-level fade (app/template.tsx re-mounts on navigation). Opacity only:
+   a transform here would trap fixed drawers/trays inside the page. */
+@keyframes page-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.page-enter {
+  animation: page-in 550ms var(--ease-soft) backwards;
 }
 
-.marquee-track {
-  animation: carrus-marquee 36s linear infinite;
+/* Scroll reveals (components/reveal.tsx toggles data-shown). */
+.js-reveal .reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 900ms var(--ease-soft), transform 900ms var(--ease-soft);
+  transition-delay: var(--reveal-delay, 0ms);
 }
-.marquee-paused .marquee-track {
-  animation-play-state: paused;
+.reveal[data-shown="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Image reveal: clip-path inset wipe, 700ms luxe curve. */
+@keyframes clip-reveal {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+.clip-reveal {
+  animation: clip-reveal 1100ms var(--ease-luxe) both;
+}
+
+/* Photo treatment: slightly muted at rest, full color + gentle zoom on hover. */
+.photo-luxe img {
+  filter: saturate(0.82) contrast(1.02);
+  transform: scale(1.001);
+  transition: filter 700ms var(--ease-luxe), transform 700ms var(--ease-luxe);
+}
+.group:hover .photo-luxe img,
+.photo-luxe:hover img {
+  filter: saturate(1) contrast(1);
+  transform: scale(1.05);
+}
+
+/* Geometric icon tile that tilts 12deg on hover. */
+.icon-tile {
+  transition: transform 700ms var(--ease-luxe), background-color 300ms var(--ease-soft);
+}
+.group:hover .icon-tile {
+  transform: rotate(12deg);
+}
+
+/* Lift for interactive cards. */
+.lift {
+  transition: transform 500ms var(--ease-soft), box-shadow 500ms var(--ease-soft), border-color 300ms var(--ease-soft), background-color 300ms var(--ease-soft);
+}
+.lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-soft);
+}
+
+/* "Echo" headline: stacked offset repeats fading into the background. */
+.echo {
+  position: relative;
+  isolation: isolate;
+}
+.echo-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  user-select: none;
+}
+}
+
+/* Density preference. */
+[data-density="compact"] [data-testid="vehicle-card"] {
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+[data-density="compact"] [data-testid="vehicle-card"] h3 {
+  font-size: 1.25rem;
+}
+
+/* Motion preference (user setting or OS setting). */
+[data-motion="reduced"] *,
+[data-motion="reduced"] *::before,
+[data-motion="reduced"] *::after {
+  animation: none !important;
+  transition-duration: 1ms !important;
+}
+[data-motion="reduced"] .reveal {
+  opacity: 1;
+  transform: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .marquee-track {
-    animation: none;
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
   }
+  .reveal { opacity: 1; transform: none; }
+  .marquee-track { animation: none; }
+}
+
+/* Older pages mark headings bold; cap display headings at semibold so the
+   display face stays calm and readable everywhere. */
+:is(h1, h2):is(.font-bold, .font-extrabold, .font-black) {
+  font-weight: 600;
 }

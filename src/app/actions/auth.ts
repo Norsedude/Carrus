@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSessionUser, safeReturnPath } from "@/lib/auth/session";
@@ -15,6 +16,7 @@ export type FormState = {
 };
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
+const REMEMBER_COOKIE = "carrus_remember_email";
 const email = z.email("Enter a valid email address");
 const password = z.string().min(8, "Use at least 8 characters").max(72, "Use at most 72 characters");
 
@@ -35,6 +37,13 @@ export async function loginAction(_prev: FormState, form: FormData): Promise<For
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
     return { tone: "error", message: "That email and password do not match an account.", fieldErrors: {}, values };
+  }
+  // "Remember me": keep the email (never the password) on this device to prefill sign-in.
+  const jar = await cookies();
+  if (form.get("remember") === "on") {
+    jar.set(REMEMBER_COOKIE, parsed.data.email, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax", httpOnly: true, secure: process.env.NODE_ENV === "production" });
+  } else {
+    jar.delete(REMEMBER_COOKIE);
   }
   revalidatePath("/", "layout");
   redirect(safeReturnPath(text(form, "next")));

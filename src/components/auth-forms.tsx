@@ -19,15 +19,19 @@ function Message({ state }: { state: FormState }) {
   return <Notice tone={state.tone ?? "error"}><span data-testid="form-message">{state.message}</span></Notice>;
 }
 
-export function LoginForm({ next }: { next: string }) {
+export function LoginForm({ next, rememberedEmail = "" }: { next: string; rememberedEmail?: string }) {
   const [state, action, pending] = useActionState(loginAction, EMPTY);
   const withNext = (path: string) => (next ? `${path}?next=${encodeURIComponent(next)}` : path);
   return (
     <form action={action} noValidate className="space-y-4">
       <input type="hidden" name="next" value={next} />
       <Message state={state} />
-      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state.values.email} error={state.fieldErrors.email} />
-      <Field label="Password" name="password" type="password" autoComplete="current-password" error={state.fieldErrors.password} />
+      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state.values.email ?? rememberedEmail} error={state.fieldErrors.email} />
+      <Field label="Password" name="password" type="password" autoComplete="current-password" autoFocus={Boolean(rememberedEmail)} error={state.fieldErrors.password} />
+      <label className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700">
+        <input type="checkbox" name="remember" defaultChecked className="size-4 rounded" />
+        Remember me on this device
+      </label>
       <button type="submit" disabled={pending} className={`${btnPrimary} w-full`}>{pending ? "Signing in…" : "Sign in"}</button>
       <p className="text-sm text-gray-700">
         <Link href="/forgot-password" className={linkCls}>Forgot your password?</Link>

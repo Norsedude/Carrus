@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MapPin, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { CompareTray } from "@/components/compare";
+import { FilterSidebar } from "@/components/filter-sidebar";
 import { FiltersPanel } from "@/components/filters-panel";
+import { EmptySearchArt } from "@/components/illustrations";
 import { SearchForm } from "@/components/search-form";
-import { Notice, btnSecondary, cardCls } from "@/components/ui";
+import { Notice, btnSecondary, cardCls, eyebrowCls } from "@/components/ui";
 import { VehicleCard } from "@/components/vehicle-card";
 import { getNow } from "@/lib/clock";
 import { serverEnv } from "@/lib/env";
@@ -28,9 +30,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
   if (!validation.ok && coreInvalid) {
     return (
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
-        <h1 className="text-3xl font-bold text-gray-900">Search vehicles</h1>
-        <div className="mt-5">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
+        <p className={eyebrowCls}>Search</p>
+        <h1 className="mt-4 text-5xl text-gray-900">Search vehicles</h1>
+        <div className="mt-8">
           <SearchForm defaults={entered} errors={filterErrors} />
         </div>
       </main>
@@ -68,12 +71,17 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   if (criteria.year) applied.push(`Year: ${criteria.year}`);
   applied.push(`Within ${criteria.radiusMiles} miles`);
   const days = result.listings[0]?.price.billableDays;
+  const activeCount =
+    criteria.vehicleTypes.length +
+    [criteria.maxDailyCents, criteria.maxTotalCents, criteria.make, criteria.model, criteria.year].filter((v) => v !== undefined && v !== "").length +
+    (criteria.minPassengers > 1 ? 1 : 0) +
+    (criteria.radiusMiles !== 25 ? 1 : 0);
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
       <h1 className="sr-only">Vehicles near {criteria.locationLabel}</h1>
       <SearchForm defaults={{ location: criteria.locationLabel, pickup: criteria.pickupLocal, return: criteria.returnLocal }} />
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-[0.95rem]">
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-[0.92rem]">
         <p className="flex items-center gap-2 text-gray-900">
           <MapPin className="size-4 shrink-0 text-gray-500" aria-hidden />
           <span>
@@ -81,17 +89,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             {days ? ` · ${days} day${days === 1 ? "" : "s"}` : ""}
           </span>
         </p>
-        <p className="flex items-center gap-2 italic text-gray-500">
-          <RefreshCw className="size-3.5" aria-hidden />
-          Checked {formatDateTime(result.searchedAt, criteria.timeZone)} in {result.durationMs} ms
-        </p>
+
       </div>
 
-      <div className="mt-6 grid gap-7 lg:grid-cols-[17rem_1fr]">
-        <aside className={`${cardCls} h-fit p-5`}>
-          <h2 className="mb-4 flex items-center gap-2 border-b border-gray-200 pb-4 text-xl font-bold text-gray-900">
-            <SlidersHorizontal className="size-5" aria-hidden /> Filters
-          </h2>
+      <div className="mt-8 flex flex-col gap-6 lg:grid lg:grid-cols-[auto_1fr] lg:gap-8">
+        <FilterSidebar activeCount={activeCount}>
           <FiltersPanel
             key={JSON.stringify(raw)}
             base={{ location: criteria.locationLabel, pickup: criteria.pickupLocal, ret: criteria.returnLocal }}
@@ -108,18 +110,22 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             }}
             errors={filterErrors}
           />
-        </aside>
+        </FilterSidebar>
 
-        <section aria-labelledby="results-heading" className="min-w-0 space-y-4">
+        <section key={JSON.stringify(raw)} aria-labelledby="results-heading" className="page-enter min-w-0 space-y-4">
           <div>
-            <h2 id="results-heading" className="text-3xl font-bold text-gray-900" data-testid="result-count">
+            <h2 id="results-heading" className="text-4xl text-gray-900 sm:text-5xl" data-testid="result-count">
               {result.resultCount} vehicle{result.resultCount === 1 ? "" : "s"} found
             </h2>
-            <p className="mt-1 text-[0.95rem] text-gray-500">{applied.join(" · ")}</p>
+            <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Applied filters">
+              {applied.map((a) => (
+                <li key={a} className="rounded-full bg-accent-soft px-3 py-1 text-[0.8rem] text-accent">{a}</li>
+              ))}
+            </ul>
           </div>
 
           <nav aria-label="Sort results" className="flex flex-wrap items-center gap-2.5">
-            <span className="text-[0.95rem] text-gray-500">Sort by</span>
+            <span className="text-sm text-gray-500">Sort</span>
             {SORT_OPTIONS.map((option) => {
               const active = criteria.sort === option;
               return (
@@ -127,8 +133,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   key={option}
                   href={hrefWith({ sort: option })}
                   aria-current={active ? "true" : undefined}
-                  className={`rounded-lg border px-4 py-2 text-[0.95rem] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-                    active ? "border-brand bg-brand font-bold text-white" : "border-gray-200 bg-white text-gray-900 hover:border-brand"
+                  className={`rounded-full border px-4 py-1.5 text-[0.88rem] focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                    active ? "border-accent bg-accent font-medium text-accent-contrast" : "border-gray-300 text-gray-700 hover:border-gray-900 hover:text-gray-900"
                   }`}
                 >
                   {SORT_CHIPS[option]}
@@ -161,9 +167,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           )}
 
           {!result.allSourcesFailed && result.resultCount === 0 && (
-            <div className={`${cardCls} p-8`} data-testid="empty-results">
-              <h3 className="text-xl font-bold text-gray-900">No vehicles match your filters</h3>
-              <p className="mt-1 text-gray-600">
+            <div className={`${cardCls} flex flex-col items-center p-10 text-center`} data-testid="empty-results">
+              <EmptySearchArt className="h-32 w-56 text-gray-900" />
+              <h3 className="mt-6 text-2xl text-gray-900">No vehicles match your filters</h3>
+              <p className="mt-2 max-w-md text-gray-600">
                 Try different dates, a wider radius, or fewer filters. Vehicles already reserved for these dates are not shown.
               </p>
             </div>

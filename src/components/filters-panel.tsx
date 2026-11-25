@@ -1,7 +1,9 @@
 "use client";
 
+import Form from "next/form";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
 import { btnPrimary, btnSecondary, inputCls } from "@/components/ui";
 
 const TYPES = ["Sedan", "SUV", "Sports", "Luxury", "Minivan", "Van", "Truck"];
@@ -21,6 +23,22 @@ export type FilterValues = {
   sort: string;
 };
 
+/** Collapsible filter group. Open by default so every control is reachable. */
+function Section({ title, summary, children }: { title: string; summary?: string; children: ReactNode }) {
+  return (
+    <details open className="group/section border-b hairline py-4 first:pt-0 last:border-b-0">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md text-[0.95rem] font-semibold text-gray-900 marker:hidden focus-visible:outline-2 focus-visible:outline-offset-4 [&::-webkit-details-marker]:hidden">
+        <span>{title}</span>
+        <span className="flex items-center gap-2 font-normal">
+          {summary && <span className="text-[0.78rem] text-gray-500">{summary}</span>}
+          <ChevronDown className="size-4 text-gray-500 transition-transform duration-500 ease-[var(--ease-luxe)] group-open/section:rotate-180" aria-hidden />
+        </span>
+      </summary>
+      <div className="pt-3">{children}</div>
+    </details>
+  );
+}
+
 /**
  * Result filters. Submits as a GET form so filters stay in the URL; the
  * server re-validates everything. The seats control restores the last valid
@@ -39,6 +57,7 @@ export function FiltersPanel({
   const [lastValidSeats, setLastValidSeats] = useState(values.seats);
   const [seatsError, setSeatsError] = useState(errors.seats ?? "");
   const [maxDaily, setMaxDaily] = useState(values.maxDaily);
+  const [types, setTypes] = useState<string[]>(values.types);
   // True right after an invalid seats value was rejected, so Apply shows the
   // message instead of reloading the page and losing it.
   const rejectedSeats = useRef(false);
@@ -64,14 +83,13 @@ export function FiltersPanel({
   }
 
   const clearHref = `/search?${new URLSearchParams({ location: base.location, pickup: base.pickup, return: base.ret }).toString()}`;
+  const stepBtn = "flex size-10 items-center justify-center rounded-full border border-gray-300 text-lg text-gray-900 hover:border-gray-900 disabled:opacity-40";
 
   return (
-    <form
+    <Form
       action="/search"
-      method="get"
       noValidate
       aria-label="Filters"
-      className="space-y-5"
       onSubmit={(e) => {
         if (rejectedSeats.current) {
           e.preventDefault();
@@ -82,40 +100,56 @@ export function FiltersPanel({
       <input type="hidden" name="location" value={base.location} />
       <input type="hidden" name="pickup" value={base.pickup} />
       <input type="hidden" name="return" value={base.ret} />
-
       <input type="hidden" name="sort" value={values.sort} />
 
-      <fieldset>
-        <legend className="text-sm font-semibold text-gray-900">Vehicle type</legend>
-        <p className="text-xs text-gray-600">None checked shows all types.</p>
-        <div className="mt-2 grid grid-cols-2 gap-1.5 lg:grid-cols-1">
-          {TYPES.map((t) => (
-            <label key={t} className="flex items-center gap-2 text-sm text-gray-800">
-              <input type="checkbox" name="type" value={t} defaultChecked={values.types.includes(t)} className="size-4 accent-brand" />
-              {t}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <Section title="Vehicle type" summary={types.length ? `${types.length} selected` : "All"}>
+        <fieldset>
+          <legend className="sr-only">Vehicle type</legend>
+          <div className="flex flex-wrap gap-2">
+            {TYPES.map((t) => (
+              <label key={t} className="cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="type"
+                  value={t}
+                  checked={types.includes(t)}
+                  onChange={(e) => setTypes((cur) => (e.target.checked ? [...cur, t] : cur.filter((x) => x !== t)))}
+                  className="peer sr-only"
+                />
+                <span className="inline-block rounded-full border border-gray-300 px-3.5 py-1.5 text-sm text-gray-700 transition-all duration-300 hover:border-gray-900 peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-contrast peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent">
+                  {t}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </Section>
 
-      <div>
-        <label htmlFor="maxDaily" className="block text-sm font-semibold text-gray-900">
-          Max price per day: <output htmlFor="maxDaily" className="tabular-nums">${maxDaily}{maxDaily === MAX_DAILY ? " (no limit)" : ""}</output>
+      <Section title="Price" summary={maxDaily === MAX_DAILY ? "Any" : `≤ $${maxDaily}/day`}>
+        <label htmlFor="maxDaily" className="flex items-baseline justify-between text-sm text-gray-700">
+          Max per day
+          <output htmlFor="maxDaily" className="font-display text-lg tabular-nums text-gray-900">
+            ${maxDaily}{maxDaily === MAX_DAILY ? "+" : ""}
+          </output>
         </label>
         <input
           id="maxDaily" name="maxDaily" type="range" min={MIN_DAILY} max={MAX_DAILY} step={10}
           value={maxDaily} onChange={(e) => setMaxDaily(Number(e.target.value))}
-          className="mt-2 w-full accent-brand"
+          className="mt-2 w-full"
           aria-describedby="maxDaily-hint"
         />
-        <p id="maxDaily-hint" className="text-xs text-gray-600">Per day, before fees. Separate from the trip budget below.</p>
+        <p id="maxDaily-hint" className="sr-only">Per day, before fees.{maxDaily === MAX_DAILY ? " No limit." : ""}</p>
         {errors.maxDaily && <p className="mt-1 text-sm font-medium text-red-700">{errors.maxDaily}</p>}
-      </div>
 
-      <div>
-        <label htmlFor="seats" className="mb-1 block text-sm font-semibold text-gray-900">Minimum seats</label>
+        <label htmlFor="maxTotal" className="mb-1.5 mt-4 block text-sm text-gray-700">Trip budget (total, $)</label>
+        <input id="maxTotal" name="maxTotal" inputMode="numeric" defaultValue={values.maxTotal} placeholder="No limit" className={inputCls} aria-invalid={errors.maxTotal ? true : undefined} />
+        {errors.maxTotal && <p className="mt-1 text-sm font-medium text-red-700">{errors.maxTotal}</p>}
+      </Section>
+
+      <Section title="Seats" summary={lastValidSeats > 1 ? `${lastValidSeats}+` : "Any"}>
+        <label htmlFor="seats" className="mb-1.5 block text-sm text-gray-700">Minimum seats</label>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => stepSeats(-1)} disabled={lastValidSeats <= 1} className={`${btnSecondary} px-3`} aria-label="Fewer seats">−</button>
+          <button type="button" onClick={() => stepSeats(-1)} disabled={lastValidSeats <= 1} className={stepBtn} aria-label="Fewer seats">−</button>
           <input
             id="seats" name="seats" inputMode="numeric" value={seatsText}
             onChange={(e) => setSeatsText(e.target.value)}
@@ -128,38 +162,33 @@ export function FiltersPanel({
             }}
             aria-invalid={seatsError ? true : undefined}
             aria-describedby="seats-error"
-            className={`${inputCls} w-20 text-center`}
+            className={`${inputCls} w-20 text-center font-display text-lg`}
           />
-          <button type="button" onClick={() => stepSeats(1)} disabled={lastValidSeats >= 15} className={`${btnSecondary} px-3`} aria-label="More seats">+</button>
+          <button type="button" onClick={() => stepSeats(1)} disabled={lastValidSeats >= 15} className={stepBtn} aria-label="More seats">+</button>
         </div>
         <p id="seats-error" role="status" className="mt-1 min-h-5 text-sm font-medium text-red-700">{seatsError}</p>
-      </div>
+      </Section>
 
-      <div>
-        <label htmlFor="maxTotal" className="mb-1 block text-sm font-semibold text-gray-900">Trip budget (total, $)</label>
-        <input id="maxTotal" name="maxTotal" inputMode="numeric" defaultValue={values.maxTotal} placeholder="No limit" className={inputCls} aria-invalid={errors.maxTotal ? true : undefined} />
-        {errors.maxTotal && <p className="mt-1 text-sm font-medium text-red-700">{errors.maxTotal}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="radius" className="mb-1 block text-sm font-semibold text-gray-900">Search radius (miles)</label>
+      <Section title="Distance" summary={`${values.radius} mi`}>
+        <label htmlFor="radius" className="mb-1.5 block text-sm text-gray-700">Search radius (miles)</label>
         <input id="radius" name="radius" inputMode="numeric" defaultValue={values.radius} className={inputCls} aria-invalid={errors.radius ? true : undefined} />
-        <p className="text-xs text-gray-600">Straight-line distance from the pickup location.</p>
         {errors.radius && <p className="mt-1 text-sm font-medium text-red-700">{errors.radius}</p>}
-      </div>
+      </Section>
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold text-gray-900">Specific vehicle (optional)</legend>
-        <input name="make" defaultValue={values.make} placeholder="Make, e.g. Toyota" aria-label="Make" className={inputCls} />
-        <input name="model" defaultValue={values.model} placeholder="Model, e.g. Camry" aria-label="Model" className={inputCls} />
-        <input name="year" inputMode="numeric" defaultValue={values.year} placeholder="Year, e.g. 2024" aria-label="Year" className={inputCls} aria-invalid={errors.year ? true : undefined} />
-        {errors.year && <p className="text-sm font-medium text-red-700">{errors.year}</p>}
-      </fieldset>
+      <Section title="Specific vehicle" summary={[values.make, values.model, values.year].filter(Boolean).join(" ") || "Optional"}>
+        <fieldset className="space-y-2">
+          <legend className="sr-only">Specific vehicle (optional)</legend>
+          <input name="make" defaultValue={values.make} placeholder="Make, e.g. Toyota" aria-label="Make" className={inputCls} />
+          <input name="model" defaultValue={values.model} placeholder="Model, e.g. Camry" aria-label="Model" className={inputCls} />
+          <input name="year" inputMode="numeric" defaultValue={values.year} placeholder="Year, e.g. 2024" aria-label="Year" className={inputCls} aria-invalid={errors.year ? true : undefined} />
+          {errors.year && <p className="text-sm font-medium text-red-700">{errors.year}</p>}
+        </fieldset>
+      </Section>
 
-      <div className="flex gap-2">
+      <div className="sticky bottom-0 -mx-1 flex gap-2 border-t hairline bg-surface px-1 pb-1 pt-4 lg:bg-white">
         <button type="submit" className={`${btnPrimary} flex-1`}>Apply</button>
         <Link href={clearHref} className={`${btnSecondary} flex-1`}>Clear all</Link>
       </div>
-    </form>
+    </Form>
   );
 }

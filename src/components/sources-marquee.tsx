@@ -25,14 +25,14 @@ export function SourcesMarquee({ connectedSources = [] }: { connectedSources?: s
   return (
     <section aria-labelledby="sources-heading">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="sources-heading" className="text-[0.78rem] font-bold uppercase tracking-[0.14em] text-gray-500">
-          One search across rental companies and peer-to-peer hosts
+        <h2 id="sources-heading" className="text-sm font-medium text-gray-500">
+          Built to search them all
         </h2>
         <button
           type="button"
           onClick={() => setPaused((p) => !p)}
           aria-pressed={paused}
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-gray-600 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-brand motion-reduce:hidden"
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-gray-600 hover:text-gray-900 focus-visible:outline-2 motion-reduce:hidden"
         >
           {paused ? <Play className="size-3.5" aria-hidden /> : <Pause className="size-3.5" aria-hidden />}
           {paused ? "Resume" : "Pause"}
@@ -44,17 +44,15 @@ export function SourcesMarquee({ connectedSources = [] }: { connectedSources?: s
             <li
               key={`${s.name}-${i}`}
               aria-hidden={i >= SOURCES.length}
-              className={`whitespace-nowrap text-[1.7rem] text-gray-400 [font-family:ui-sans-serif,system-ui,Helvetica,Arial,sans-serif] ${s.className}`}
+              className={`whitespace-nowrap text-[1.6rem] text-gray-300 transition-colors duration-500 hover:text-gray-700 [font-family:ui-sans-serif,system-ui,Helvetica,Arial,sans-serif] ${s.className}`}
             >
               {s.name}
             </li>
           ))}
         </ul>
       </div>
-      <p className="mt-4 text-sm text-gray-500">
-        These are planned sources, not endorsements or partnerships. {connectedSources.length > 0
-          ? `Configured listing feeds: ${connectedSources.join(", ")}. Provider bookings take place on the provider website.`
-          : "This prototype is not connected to or affiliated with these companies yet; vehicles shown come from Carrus Rental Partners."}
+      <p className="mt-4 text-xs text-gray-500">
+        {connectedSources.length > 0 ? `Connected: ${connectedSources.join(", ")}.` : "Planned sources. Not affiliated or connected yet."}
       </p>
     </section>
   );

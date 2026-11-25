@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { btnPrimary, btnSecondary } from "@/components/ui";
 
@@ -89,7 +89,7 @@ export function CompareNavLink({ className, activeClassName }: { className: stri
     <Link href={compareHref(state)} className={`${className} ${active ? activeClassName : ""}`} aria-current={active ? "page" : undefined}>
       Compare
       <span
-        className="ml-1.5 inline-flex min-w-5 justify-center rounded-full bg-brand-soft px-1.5 text-xs font-bold text-brand"
+        className="ml-1.5 inline-flex min-w-5 justify-center rounded-full bg-accent px-1.5 text-[0.68rem] font-bold tracking-normal text-accent-contrast transition-colors"
         aria-label={`${state.ids.length} vehicles selected`}
       >
         {state.ids.length}
@@ -99,7 +99,21 @@ export function CompareNavLink({ className, activeClassName }: { className: stri
 }
 
 /** "Compare" checkbox on a result card or vehicle page. */
-export function CompareToggle({ id, name, pickup, ret, location }: { id: string; name: string; pickup: string; ret: string; location: string }) {
+export function CompareToggle({
+  id,
+  name,
+  pickup,
+  ret,
+  location,
+  variant = "inline",
+}: {
+  id: string;
+  name: string;
+  pickup: string;
+  ret: string;
+  location: string;
+  variant?: "inline" | "overlay";
+}) {
   const state = useCompare();
   const [message, setMessage] = useState("");
   const selected = state.ids.includes(id);
@@ -120,13 +134,36 @@ export function CompareToggle({ id, name, pickup, ret, location }: { id: string;
     write({ ids: [...ids, id], names: { ...(sameTrip ? state.names : {}), [id]: name }, pickup, ret, location });
   }
 
+  const overlay = variant === "overlay";
   return (
     <div>
-      <label className={`inline-flex cursor-pointer items-center gap-2 text-[0.95rem] ${selected ? "font-bold text-brand" : "text-gray-800"}`}>
-        <input type="checkbox" checked={selected} onChange={toggle} className="size-4 accent-brand" />
-        Compare<span className="sr-only"> {name}</span>
+      <label
+        className={[
+          "inline-flex cursor-pointer select-none items-center gap-2 rounded-full text-sm transition-all duration-300",
+          overlay ? "bg-[#fafafa]/90 px-3 py-1.5 text-[#111] shadow-sm backdrop-blur hover:bg-[#ffffff]" : "text-gray-800",
+          selected ? "font-semibold" : "",
+          selected && overlay ? "!bg-accent !text-accent-contrast" : "",
+        ].join(" ")}
+      >
+        <span className="relative inline-flex size-[1.05rem]">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={toggle}
+            className={`peer size-full cursor-pointer appearance-none rounded-[5px] border-[1.5px] transition-colors duration-300 ${
+              overlay ? "border-current checked:border-accent-contrast checked:bg-accent-contrast" : "border-gray-500 checked:border-accent checked:bg-accent"
+            }`}
+          />
+          <Check
+            aria-hidden
+            strokeWidth={3}
+            className={`pointer-events-none absolute inset-0 m-auto size-3 scale-50 opacity-0 transition-all duration-300 peer-checked:scale-100 peer-checked:opacity-100 ${overlay ? "text-accent" : "text-accent-contrast"}`}
+          />
+        </span>
+        Compare
+        <span className="sr-only"> {name}</span>
       </label>
-      <p role="status" className="mt-1 text-sm font-medium text-amber-800 empty:hidden">
+      <p role="status" className={`mt-1 text-xs font-medium empty:hidden ${overlay ? "rounded-lg bg-[#fafafa]/95 px-2 py-1 text-[#6b5016]" : "text-amber-800"}`}>
         {message}
       </p>
     </div>
@@ -138,29 +175,29 @@ export function CompareTray() {
   const state = useCompare();
   if (state.ids.length === 0) return null;
   return (
-    <section aria-label="Vehicles selected to compare" className="sticky bottom-4 z-30 rounded-xl bg-night p-4 text-white shadow-xl" data-testid="compare-tray">
+    <section aria-label="Vehicles selected to compare" className="sticky bottom-4 z-30 rounded-2xl bg-night p-4 text-snow shadow-[var(--shadow-soft)] page-enter" data-testid="compare-tray">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-lg font-bold">
             {state.ids.length} vehicle{state.ids.length === 1 ? "" : "s"} selected
           </p>
-          <p className="text-sm text-gray-300">
+          <p className="text-sm text-snow/70">
             Compare up to {MAX_COMPARE} vehicles
             {state.ids.length < MAX_COMPARE ? ` · Add ${MAX_COMPARE - state.ids.length} more` : ""}
           </p>
         </div>
-        <Link href={compareHref(state)} className={btnPrimary}>
+        <Link href={compareHref(state)} className={`${btnPrimary} !bg-snow !text-[#111] hover:!bg-[#ffffff]`}>
           Compare {state.ids.length} vehicle{state.ids.length === 1 ? "" : "s"}
         </Link>
       </div>
       <ul className="mt-3 flex flex-wrap gap-2">
         {state.ids.map((id) => (
-          <li key={id} className="flex items-center gap-2 rounded-lg bg-white/10 py-1.5 pl-3 pr-1.5 text-sm">
+          <li key={id} className="flex items-center gap-2 rounded-full bg-snow/10 py-1.5 pl-3 pr-1.5 text-sm">
             {state.names[id] ?? "Selected vehicle"}
             <button
               type="button"
               onClick={() => write({ ...state, ids: state.ids.filter((x) => x !== id) })}
-              className="rounded p-1 hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-white"
+              className="rounded-full p-1 hover:bg-snow/15 focus-visible:outline-2 focus-visible:outline-snow"
               aria-label={`Remove ${state.names[id] ?? "vehicle"} from compare`}
             >
               <X className="size-4" aria-hidden />
