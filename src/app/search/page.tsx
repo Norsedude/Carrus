@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
-import { CompareTray } from "@/components/compare";
+import { CompareHint, CompareTray } from "@/components/compare";
 import { FilterSidebar } from "@/components/filter-sidebar";
 import { FiltersPanel } from "@/components/filters-panel";
 import { EmptySearchArt } from "@/components/illustrations";
@@ -176,6 +176,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             </div>
           )}
 
+          {result.resultCount > 0 && <CompareHint />}
           <ul className="space-y-4">
             {result.listings.map((listing) => (
               <VehicleCard key={listing.id} listing={listing} trip={trip} />

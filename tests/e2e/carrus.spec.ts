@@ -140,9 +140,12 @@ test.describe("booking", () => {
     expect(await bookingCount()).toBe(0);
     expect((await admin.from("occupancy").select("id")).data).toHaveLength(0);
 
-    // Sign-in is required at checkout and the selection is retained.
+    // Checkout opens without an account (guests only give an email). A
+    // signed-in customer books under their account; signing in returns here.
     await page.getByRole("link", { name: "Continue to checkout" }).click();
-    await expect(page).toHaveURL(/\/login\?next=/);
+    await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
+    await expect(page.getByLabel("Email")).toBeVisible();
+    await page.goto(`/login?next=${encodeURIComponent(new URL(page.url()).pathname)}`);
     await login(page, "test.customer");
     await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
     await expect(page.getByTestId("trip-vehicle")).toHaveText("2024 Toyota Camry");
@@ -181,6 +184,22 @@ test.describe("booking", () => {
     await login(page, "test.customer2");
     await expect(page.getByText(/could not be found|404/i).first()).toBeVisible();
     await expect(page.getByText(reference!)).toHaveCount(0);
+  });
+
+  test("guest checkout: no account needed, only an email", async ({ page }) => {
+    await page.goto(`/vehicles/${fx.vehicles["CAR-003"]}?pickup=2026-12-10T10:00&return=2026-12-13T10:00&location=SJC`);
+    await page.getByRole("button", { name: "Reserve this vehicle" }).click();
+    await page.getByRole("link", { name: "Continue to checkout" }).click();
+    await expect(page).toHaveURL(/\/checkout\//);
+    await page.getByRole("button", { name: /Pay \$210\.00 and reserve/ }).click();
+    await expect(page.getByText("Enter the email for your confirmation")).toBeVisible();
+    await page.getByLabel("Email").fill("guest.checkout@carrus.test");
+    await fillCheckout(page, "4242 4242 4242 4242");
+    await page.getByRole("button", { name: /Pay \$210\.00 and reserve/ }).click();
+    await expect(page.getByRole("heading", { name: "Your reservation is confirmed" })).toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId("booking-reference")).toHaveText(/^CR-\d+$/);
+    expect(await bookingCount()).toBe(1);
   });
 
   test("TC-CK02 / TC-CK03 / TC-PT04: missing field is blocked; declined payment makes no booking and frees the car", async ({ page }) => {

@@ -4,15 +4,33 @@ import { useActionState } from "react";
 import { confirmExternalDemoAction, type ExternalDemoState } from "@/app/actions/external-demo";
 import { Field, Notice, btnPrimary } from "@/components/ui";
 
-export function DemoCheckoutForm({ orderId, initial }: { orderId: string; initial: ExternalDemoState }) {
+export function DemoCheckoutForm({
+  orderId,
+  guest,
+  initial,
+}: {
+  orderId?: string;
+  /** Guest checkout: the offer to create the order from (no account needed). */
+  guest?: Record<string, string>;
+  initial: ExternalDemoState;
+}) {
   const [state, action, pending] = useActionState(confirmExternalDemoAction, initial);
   const e = state.fieldErrors;
   return (
     <form action={action} noValidate className="space-y-5">
-      <input type="hidden" name="orderId" value={orderId} />
+      {orderId && <input type="hidden" name="orderId" value={orderId} />}
+      {guest && (
+        <>
+          <input type="hidden" name="guest" value="1" />
+          {Object.entries(guest).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
+        </>
+      )}
       {state.message && <Notice tone="error">{state.message}</Notice>}
       <fieldset className="space-y-4">
         <legend className="font-bold">Driver contact</legend>
+        {guest && (
+          <Field label="Email" name="guestEmail" type="email" autoComplete="email" defaultValue={state.values.guestEmail} error={e.guestEmail} hint="Your confirmation is saved to this email. No account needed." />
+        )}
         <Field label="Full name" name="contactName" autoComplete="name" defaultValue={state.values.contactName} error={e.contactName} />
         <Field label="Mobile phone" name="contactPhone" type="tel" autoComplete="tel" defaultValue={state.values.contactPhone} error={e.contactPhone} />
       </fieldset>

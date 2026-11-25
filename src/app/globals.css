@@ -244,6 +244,15 @@ input[type="range"] {
   animation: page-in 550ms var(--ease-soft) backwards;
 }
 
+/* Bottom sheet / dialog entrance. */
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(32px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+.sheet-in {
+  animation: sheet-in 600ms var(--ease-soft) backwards;
+}
+
 /* Scroll reveals (components/reveal.tsx toggles data-shown). */
 .js-reveal .reveal {
   opacity: 0;

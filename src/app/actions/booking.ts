@@ -4,8 +4,10 @@ import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth/session";
+import { grantGuestAccess } from "@/lib/guest-access";
 import { getNow } from "@/lib/clock";
 import { createAdminClient } from "@/lib/supabase/server";
+import { guestUserId } from "@/server/booking/guest";
 import { createQuote, submitCheckout } from "@/server/booking/service";
 import { validateCard, type CardFieldErrors } from "@/server/payments/simulated";
 import { validateDates } from "@/server/search/validator";
@@ -48,8 +50,8 @@ export type CheckoutState = {
   idempotencyKey: string;
   message?: string;
   tone?: "error" | "warning";
-  fieldErrors: CardFieldErrors & Partial<Record<"contactName" | "contactPhone" | "terms", string>>;
-  values: { contactName: string; contactPhone: string; cardExpiry: string; cardZip: string };
+  fieldErrors: CardFieldErrors & Partial<Record<"contactName" | "contactPhone" | "terms" | "guestEmail", string>>;
+  values: { contactName: string; contactPhone: string; cardExpiry: string; cardZip: string; guestEmail?: string };
   blocked?: boolean;
 };
 
@@ -60,20 +62,23 @@ const contactSchema = z.object({
     .regex(/^[0-9+() .-]{7,20}$/, "Enter a phone number, for example 408-555-0101"),
 });
 
+const guestEmailSchema = z.email("Enter the email for your confirmation").max(254);
+
 /**
- * Checkout submit. The server re-reads the signed-in user and the stored
- * quote; the browser supplies no price, user id or payment status.
+ * Checkout submit. Signed-in users book as themselves; guests only give an
+ * email, and the booking is filed under that email (see server/booking/guest).
+ * The browser supplies no price, user id or payment status.
  */
 export async function checkoutAction(prev: CheckoutState, form: FormData): Promise<CheckoutState> {
   const quoteId = text(form, "quoteId");
   const user = await getSessionUser();
-  if (!user) redirect(`/login?next=${encodeURIComponent(`/checkout/${quoteId}`)}`);
 
   const values = {
     contactName: text(form, "contactName"),
     contactPhone: text(form, "contactPhone"),
     cardExpiry: text(form, "cardExpiry"),
     cardZip: text(form, "cardZip"),
+    guestEmail: text(form, "guestEmail"),
   };
   const card = { number: text(form, "cardNumber"), expiry: values.cardExpiry, cvc: text(form, "cardCvc"), zip: values.cardZip };
   // Validation failures never reach the booking tables, so the key is reused.
@@ -87,13 +92,24 @@ export async function checkoutAction(prev: CheckoutState, form: FormData): Promi
       fieldErrors[key] ??= issue.message;
     }
   }
+  if (!user && !guestEmailSchema.safeParse(values.guestEmail).success) fieldErrors.guestEmail = "Enter the email for your confirmation";
   if (form.get("terms") !== "on") fieldErrors.terms = "Accept the rental terms to continue";
   if (Object.keys(fieldErrors).length > 0) {
     return { idempotencyKey, fieldErrors, values, tone: "error", message: "Fix the highlighted fields. You have not been charged." };
   }
 
-  const outcome = await submitCheckout(createAdminClient(), {
-    userId: user.id,
+  const admin = createAdminClient();
+  let userId = user?.id;
+  if (!userId) {
+    try {
+      userId = await guestUserId(admin, values.guestEmail, values.contactName);
+    } catch {
+      return { idempotencyKey, fieldErrors: {}, values, tone: "error", message: "We could not start a guest checkout right now. You have not been charged. Please try again." };
+    }
+  }
+
+  const outcome = await submitCheckout(admin, {
+    userId,
     quoteId,
     idempotencyKey,
     contactName: values.contactName,
@@ -101,7 +117,10 @@ export async function checkoutAction(prev: CheckoutState, form: FormData): Promi
     cardNumber: card.number,
   });
 
-  if (outcome.status === "confirmed") redirect(`/bookings/${outcome.bookingId}/confirmation`);
+  if (outcome.status === "confirmed") {
+    if (!user) await grantGuestAccess("booking", outcome.bookingId);
+    redirect(`/bookings/${outcome.bookingId}/confirmation`);
+  }
 
   // Any completed, unsuccessful attempt gets a fresh key so a retry is a new attempt.
   const next = { idempotencyKey: randomUUID(), fieldErrors: {}, values };

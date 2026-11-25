@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 import { PriceBreakdownView } from "@/components/price";
 import { TripSummary } from "@/components/trip-summary";
 import { Notice, PageShell, StateBadge, btnPrimary, btnSecondary, cardCls } from "@/components/ui";
-import { requireUser } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
+import { getSessionUser } from "@/lib/auth/session";
+import { readGuestAccess } from "@/lib/guest-access";
 import { formatCents } from "@/lib/money";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { VehicleSnapshot } from "@/server/booking/service";
 import type { PriceBreakdown } from "@/server/pricing/pricing";
 
@@ -19,10 +21,14 @@ export const metadata: Metadata = { title: "Reservation confirmed" };
  */
 export default async function ConfirmationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await requireUser(`/bookings/${id}/confirmation`);
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const db = await createClient();
-  const { data: booking } = await db.from("bookings").select("*").eq("id", id).eq("customer_id", user.id).maybeSingle();
+  const user = await getSessionUser();
+  // Guests may open only the confirmations this browser created (signed cookie).
+  const guest = !user && (await readGuestAccess()).bookings.includes(id);
+  if (!user && !guest) redirect(`/login?next=${encodeURIComponent(`/bookings/${id}/confirmation`)}`);
+  const db = guest ? createAdminClient() : await createClient();
+  const query = db.from("bookings").select("*").eq("id", id);
+  const { data: booking } = await (user ? query.eq("customer_id", user.id) : query).maybeSingle();
   if (!booking) notFound();
   const { data: payments } = await db.from("payments").select("state, amount_cents, provider_ref").eq("booking_id", booking.id);
   const paid = payments?.find((p) => p.state === "succeeded");
@@ -33,6 +39,7 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
         <Notice tone="success" title={`Reservation ${booking.reference}`}>
           <span data-testid="booking-reference" className="sr-only">{booking.reference}</span>
           This exact vehicle is reserved for you. Keep this reference for pickup.
+          {guest && " It is saved to the email you entered; sign up or reset your password with that email to see it under Trips."}
         </Notice>
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
           <div className={`${cardCls} space-y-4 p-5`}>
@@ -50,7 +57,11 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
           </aside>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/trips" className={btnPrimary}>View my trips</Link>
+          {guest ? (
+            <Link href="/signup" className={btnPrimary}>Create an account to track trips</Link>
+          ) : (
+            <Link href="/trips" className={btnPrimary}>View my trips</Link>
+          )}
           <Link href="/" className={btnSecondary}>Back to home</Link>
         </div>
       </div>

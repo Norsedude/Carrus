@@ -38,7 +38,32 @@ export function VehicleCard({ listing, trip }: { listing: VehicleListing; trip: 
         />
         {/* Every result can be compared: Carrus cars, demo listings and partner offers. */}
         <div className="absolute left-2.5 top-2.5">
-          <CompareToggle variant="overlay" id={listing.id} name={`${listing.make} ${listing.model}`} pickup={trip.pickup} ret={trip.ret} location={trip.location} />
+          <CompareToggle
+            variant="overlay"
+            id={listing.id}
+            name={`${listing.make} ${listing.model}`}
+            pickup={trip.pickup}
+            ret={trip.ret}
+            location={trip.location}
+            snapshot={{
+              name: `${listing.make} ${listing.model}`,
+              photoUrl: listing.photoUrl,
+              year: listing.year,
+              type: listing.vehicleType,
+              seats: listing.seats,
+              transmission: listing.transmission,
+              exact: listing.exactMatch,
+              demo: listing.isMockSource,
+              offeredBy: listing.partner ? listing.partner.displayName : listing.providerName,
+              distanceMiles: listing.distanceMiles,
+              dailyCents: listing.dailyRateCents,
+              totalCents: listing.price.totalCents,
+              days: listing.price.billableDays,
+              lines: listing.price.lines,
+              href: native ? vehicleHref(listing.id, trip) : (listing.sourceUrl ?? "#"),
+              external: !native,
+            }}
+          />
         </div>
         <PhotoCredit credit={listing.photoCredit} className="mt-1.5" />
       </div>

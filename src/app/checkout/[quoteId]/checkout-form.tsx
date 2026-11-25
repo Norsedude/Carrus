@@ -10,11 +10,13 @@ export function CheckoutForm({
   initial,
   amountLabel,
   backHref,
+  guest = false,
 }: {
   quoteId: string;
   initial: CheckoutState;
   amountLabel: string;
   backHref: string;
+  guest?: boolean;
 }) {
   const [state, action, pending] = useActionState(checkoutAction, initial);
   const e = state.fieldErrors;
@@ -40,6 +42,17 @@ export function CheckoutForm({
 
       <fieldset className="space-y-4">
         <legend className="text-base font-semibold text-gray-900">Driver contact</legend>
+        {guest && (
+          <Field
+            label="Email"
+            name="guestEmail"
+            type="email"
+            autoComplete="email"
+            defaultValue={state.values.guestEmail}
+            error={e.guestEmail}
+            hint="Your confirmation is saved to this email. No account or password needed."
+          />
+        )}
         <Field label="Full name" name="contactName" autoComplete="name" defaultValue={state.values.contactName} error={e.contactName} />
         <Field label="Mobile phone" name="contactPhone" type="tel" autoComplete="tel" defaultValue={state.values.contactPhone} error={e.contactPhone} hint="Shared with the rental partner for this reservation." />
       </fieldset>

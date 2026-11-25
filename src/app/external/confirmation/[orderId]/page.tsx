@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Notice, PageShell, btnPrimary, cardCls } from "@/components/ui";
-import { requireUser } from "@/lib/auth/session";
+import { getSessionUser } from "@/lib/auth/session";
+import { readGuestAccess } from "@/lib/guest-access";
 import { formatCents } from "@/lib/money";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/time";
 import type { VehicleListing } from "@/server/search/types";
 
@@ -13,9 +14,12 @@ export const metadata: Metadata = { title: "Demo checkout complete" };
 export default async function ExternalDemoConfirmationPage({ params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(orderId)) notFound();
-  const user = await requireUser(`/external/confirmation/${orderId}`);
-  const db = await createClient();
-  const { data: order } = await db.from("external_demo_orders").select("*").eq("id", orderId).eq("customer_id", user.id).eq("state", "confirmed").maybeSingle();
+  const user = await getSessionUser();
+  const guest = !user && (await readGuestAccess()).orders.includes(orderId);
+  if (!user && !guest) redirect(`/login?next=${encodeURIComponent(`/external/confirmation/${orderId}`)}`);
+  const db = guest ? createAdminClient() : await createClient();
+  const query = db.from("external_demo_orders").select("*").eq("id", orderId).eq("state", "confirmed");
+  const { data: order } = await (user ? query.eq("customer_id", user.id) : query).maybeSingle();
   if (!order) notFound();
   const listing = order.listing_snapshot as unknown as VehicleListing;
   return (
@@ -32,7 +36,11 @@ export default async function ExternalDemoConfirmationPage({ params }: { params:
           <p className="text-sm">Driver: {order.contact_name}</p>
           <a href={order.source_url} target="_blank" rel="noopener noreferrer" className={btnPrimary}>Open original listing to book</a>
         </section>
-        <Link href="/trips" className="font-bold text-brand underline">View my trips and demos</Link>
+        {guest ? (
+          <p className="text-sm text-gray-600">Saved to the email you entered. <Link href="/signup" className="font-medium text-gray-900 underline underline-offset-4">Create an account</Link> with it to see this under Trips.</p>
+        ) : (
+          <Link href="/trips" className="font-medium text-gray-900 underline underline-offset-4">View my trips and demos</Link>
+        )}
       </div>
     </PageShell>
   );
