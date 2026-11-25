@@ -20,16 +20,17 @@ const listingSchema = z.object({
   make: z.string().min(1).max(80),
   model: z.string().min(1).max(80),
   year: z.number().int().min(1900).max(2100),
-  color: z.string().max(80).default(""),
+  // Real feeds often send null for empty optional text; treat it as "".
+  color: z.string().max(80).nullish().transform((value) => value ?? ""),
   vehicleType: z.enum(["Sedan", "SUV", "Sports", "Luxury", "Minivan", "Van", "Truck"]),
   seats: z.number().int().min(1).max(30),
   transmission: z.string().min(1).max(80),
-  description: z.string().max(5000).default(""),
+  description: z.string().max(5000).nullish().transform((value) => value ?? ""),
   locationLabel: z.string().min(1).max(200),
   coordinates: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }),
   timeZone: z.string().min(1).max(100),
   exactMatch: z.boolean(),
-  photoUrls: z.array(httpsUrl).max(12).default([]),
+  photoUrls: z.array(z.string()).max(12).nullish().transform((value) => value ?? []),
   sourceUrl: httpsUrl,
   termsUrl: httpsUrl,
   checkoutDetails: z.string().min(1).max(3000),
@@ -44,9 +45,11 @@ const listingSchema = z.object({
     lines: z.array(z.object({ code: z.string().min(1), label: z.string().min(1), cents })).min(1).max(30),
   }),
 });
+// Listings are validated one at a time so a single malformed offer does not
+// discard every other offer in the feed.
 const responseSchema = z.object({
-  searchedAt: z.iso.datetime(),
-  listings: z.array(listingSchema).max(100),
+  searchedAt: z.iso.datetime({ offset: true }),
+  listings: z.array(z.unknown()).max(100),
 });
 
 export type PartnerFeedConfig = z.infer<typeof configSchema>[number];
@@ -71,16 +74,21 @@ function validHost(host: string): boolean {
 }
 
 function allowedUrl(url: string, hosts: string[]): boolean {
-  return hosts.includes(new URL(url).hostname.toLowerCase());
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && hosts.includes(parsed.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
 }
 
 export function normalizePartnerListing(raw: z.infer<typeof listingSchema>, feed: PartnerFeedConfig, searchedAt: string): VehicleListing {
   if (!allowedUrl(raw.sourceUrl, feed.allowedHosts) || !allowedUrl(raw.termsUrl, feed.allowedHosts)) {
     throw new Error("Partner feed returned a link outside its allowed hosts");
   }
-  if (raw.photoUrls.some((url) => !allowedUrl(url, feed.imageHosts))) {
-    throw new Error("Partner feed returned a photo outside its allowed image hosts");
-  }
+  // Photos from unapproved hosts are dropped (the card falls back to artwork)
+  // rather than hiding an otherwise valid offer.
+  const photoUrls = raw.photoUrls.filter((url) => allowedUrl(url, feed.imageHosts));
   if (raw.price.lines.reduce((sum, line) => sum + line.cents, 0) !== raw.price.totalCents) {
     throw new Error("Partner feed price lines do not equal the total");
   }
@@ -108,8 +116,8 @@ export function normalizePartnerListing(raw: z.infer<typeof listingSchema>, feed
     coordinates: raw.coordinates,
     timeZone: raw.timeZone,
     distanceMiles: null,
-    photoUrl: raw.photoUrls[0] ?? null,
-    photoUrls: raw.photoUrls,
+    photoUrl: photoUrls[0] ?? null,
+    photoUrls,
     dailyRateCents: raw.price.dailyRateCents,
     pricingPolicyId: null,
     partner: null,
@@ -161,13 +169,39 @@ export function partnerFeedAdapter(feed: PartnerFeedConfig): ProviderAdapter {
       const body = await response.text();
       if (body.length > 2_000_000) throw new Error("partner feed response too large");
       const data = responseSchema.parse(JSON.parse(body));
-      const ageMs = Date.now() - new Date(data.searchedAt).getTime();
+      const searchedAt = new Date(data.searchedAt).toISOString();
+      const ageMs = Date.now() - new Date(searchedAt).getTime();
       if (ageMs < -60_000 || ageMs > 15 * 60_000) throw new Error("partner feed data is stale");
-      return data.listings.map((listing) => normalizePartnerListing(listing, feed, data.searchedAt));
+      const listings: VehicleListing[] = [];
+      const rejected: string[] = [];
+      data.listings.forEach((item, index) => {
+        const parsed = listingSchema.safeParse(item);
+        if (!parsed.success) {
+          rejected.push(`#${index}: ${parsed.error.issues[0]?.path.join(".")} ${parsed.error.issues[0]?.message}`);
+          return;
+        }
+        try {
+          listings.push(normalizePartnerListing(parsed.data, feed, searchedAt));
+        } catch (error) {
+          rejected.push(`${parsed.data.id}: ${error instanceof Error ? error.message : "invalid"}`);
+        }
+      });
+      if (rejected.length > 0) {
+        console.warn(`[partner-feed:${feed.key}] skipped ${rejected.length} of ${data.listings.length} listings`, rejected.slice(0, 5));
+      }
+      // Every offer invalid means the feed is broken, not empty: report it unavailable.
+      if (data.listings.length > 0 && listings.length === 0) throw new Error("partner feed returned no valid listings");
+      return listings;
     },
   };
 }
 
+/** Configured feeds. A bad PARTNER_FEEDS_JSON disables feeds instead of crashing search. */
 export function configuredPartnerAdapters(): ProviderAdapter[] {
-  return parsePartnerFeedConfig(process.env.PARTNER_FEEDS_JSON).map(partnerFeedAdapter);
+  try {
+    return parsePartnerFeedConfig(process.env.PARTNER_FEEDS_JSON).map(partnerFeedAdapter);
+  } catch (error) {
+    console.error("[partner-feed] PARTNER_FEEDS_JSON is invalid; partner feeds are disabled:", error instanceof Error ? error.message : error);
+    return [];
+  }
 }

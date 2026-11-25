@@ -65,6 +65,7 @@ export async function fetchListings(
       }
     } else {
       const reason = result.reason instanceof Error ? result.reason.message : "unknown error";
+      console.warn(`[search] source ${adapter.key} unavailable: ${reason.slice(0, 500)}`);
       unavailableSources.push({
         providerKey: adapter.key,
         providerName: adapter.name,

@@ -23,7 +23,10 @@ const offer = {
     ] },
 };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 describe("authorized partner feed", () => {
   it("fetches live offers and keeps them redirect-only", async () => {
@@ -45,6 +48,39 @@ describe("authorized partner feed", () => {
     for (const listing of invalid) {
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ searchedAt: new Date().toISOString(), listings: [listing] }), { status: 200 })));
       await expect(partnerFeedAdapter(feed).search(query)).rejects.toThrow();
+    }
+  });
+
+  it("keeps valid offers when other offers in the same feed are invalid", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const bad = [
+      { ...offer, id: "bad-total", price: { ...offer.price, totalCents: 1 } },
+      { ...offer, id: "bad-link", sourceUrl: "https://other.example/checkout" },
+      { id: "bad-shape" },
+    ];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ searchedAt: new Date().toISOString(), listings: [...bad, offer] }), { status: 200 })));
+    const listings = await partnerFeedAdapter(feed).search(query);
+    expect(listings.map((l) => l.providerListingId)).toEqual(["offer-123"]);
+  });
+
+  it("accepts null optional fields, offset timestamps, and drops unapproved photos", async () => {
+    const loose = { ...offer, color: null, description: null, photoUrls: ["https://cdn.other.example/x.jpg", offer.photoUrls[0]] };
+    const searchedAt = new Date().toISOString().replace("Z", "+00:00");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ searchedAt, listings: [loose] }), { status: 200 })));
+    const [listing] = await partnerFeedAdapter(feed).search(query);
+    expect(listing).toMatchObject({ color: "", description: "", photoUrl: offer.photoUrls[0], photoUrls: [offer.photoUrls[0]] });
+  });
+
+  it("disables feeds instead of crashing search when the config is invalid", async () => {
+    const { configuredPartnerAdapters } = await import("@/server/search/providers/partner-feed");
+    const original = process.env.PARTNER_FEEDS_JSON;
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    process.env.PARTNER_FEEDS_JSON = "[{not json";
+    try {
+      expect(configuredPartnerAdapters()).toEqual([]);
+    } finally {
+      if (original === undefined) delete process.env.PARTNER_FEEDS_JSON;
+      else process.env.PARTNER_FEEDS_JSON = original;
     }
   });
 
