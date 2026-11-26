@@ -33,7 +33,7 @@ Last full check run (2026-11-14, after the restyle): lint clean, typecheck clean
 - Customer: "Start condition check" on a ready trip opens `/trips/[id]/pickup-check`: exterior damage, fuel level, cleanliness, one photo each for exterior, fuel gauge and interior, and an acknowledgment. Saving moves the reservation to Active. Both the trip page and the partner reservation page show the saved record with timestamped photos.
 - Database: migration `20261125000001_pickup_inspections.sql` (tables `inspections` and `inspection_photos`, private bucket `inspection-photos`, functions `mark_ready_for_pickup` and `record_pickup_inspection`). The return inspection (F7) reuses the same tables with stage `return`.
 - `npm run seed:sanjay` now also creates reservations #1001 (confirmed), #1002 and #1003 (ready for pickup) on archived RAV4 test units, so search results are unchanged.
-- Checked so far: lint, typecheck, 61 unit tests, production build, and the migration's functions and row-level security in an in-memory Postgres. **Not yet run:** `tests/integration/inspection.test.ts` and a browser pass, which need local Supabase in Docker.
+- Checked so far: lint, typecheck, unit tests, production build, and the migration's functions and row-level security in an in-memory Postgres. Integration tests now run on GitHub for every pull request (`.github/workflows/integration.yml`), so team members without Docker still get results. A browser pass is still to do.
 - Server actions and the proxy accept bodies up to 32 MB (three 10 MB photos) in `next.config.ts`.
 
 ### Working (real code, covered by executed tests)
