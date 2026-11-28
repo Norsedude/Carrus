@@ -74,7 +74,7 @@ export async function pickupCheckAction(_prev: FormState, form: FormData): Promi
     photos,
   });
   if (!result.ok) {
-    return { tone: "error", message: result.message, fieldErrors: result.fieldErrors, values };
+    return { tone: "error", message: result.message, fieldErrors: result.fieldErrors, values: { ...values, acknowledged: form.get("acknowledged") === "on" ? "on" : "" } };
   }
   revalidatePath(`/trips/${bookingId}`);
   revalidatePath(`/partner/reservations/${bookingId}`);

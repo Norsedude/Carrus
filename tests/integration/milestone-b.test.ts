@@ -143,3 +143,20 @@ describe("listing photos", () => {
     await admin.storage.from("vehicle-photos").remove([path]);
   });
 });
+
+describe("pickup check uploads (PR #2 review fixes)", () => {
+  it("another customer's submission stores nothing in the booking's private folder", async () => {
+    const { recordPickupCheck, INSPECTION_BUCKET } = await import("@/server/inspections/service");
+    const q = await createQuote(admin, { vehicleId: fx.vehicles["CAR-001"], pickupAt: MATEO.pickup, returnAt: MATEO.ret, userId: fx.ids.customer1 });
+    if (!q.ok) throw new Error(q.code);
+    const out = await submitCheckout(admin, { userId: fx.ids.customer1, quoteId: q.quoteId, idempotencyKey: randomUUID(), cardNumber: "4242424242424242", ...contact });
+    if (out.status !== "confirmed") throw new Error(out.status);
+    await admin.from("bookings").update({ state: "ready_for_pickup", ready_at: new Date().toISOString() }).eq("id", out.bookingId);
+    const jpeg = new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4])], "a.jpg", { type: "image/jpeg" });
+    const input = { exteriorDamage: "None", fuelLevel: "Full", cleanliness: "Clean", acknowledged: true, photos: { exterior: jpeg, fuel_gauge: jpeg, interior: jpeg } };
+    expect(await recordPickupCheck(admin, fx.ids.customer2, out.bookingId, input)).toEqual({ ok: false, message: "Reservation not found.", fieldErrors: {} });
+    const { data: files } = await admin.storage.from(INSPECTION_BUCKET).list(`${out.bookingId}/pickup`);
+    expect(files ?? []).toHaveLength(0);
+    expect(await recordPickupCheck(admin, fx.ids.customer1, out.bookingId, input)).toEqual({ ok: true });
+  });
+});

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { downscaleImage } from "@/lib/client-image";
 import { Plus, Trash2 } from "lucide-react";
 import { useActionState, useState } from "react";
 import type { FormState } from "@/app/actions/auth";
@@ -149,24 +150,6 @@ export function VehicleForm({
   );
 }
 
-/** Shrinks a photo to at most 1920px as a JPEG so uploads stay small (Vercel caps request size). */
-async function prepareForUpload(file: File): Promise<Blob> {
-  try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, 1920 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
-    if (blob) return blob;
-  } catch {
-    // Not decodable here (e.g. HEIC): send as-is and let the server decide.
-  }
-  return file;
-}
-
 /** Upload, choose the cover, and remove listing photos. */
 export function PhotoManager({ vehicleId, photos, max }: { vehicleId: string; photos: { id: string; url: string; isPrimary: boolean }[]; max: number }) {
   const router = useRouter();
@@ -184,7 +167,7 @@ export function PhotoManager({ vehicleId, photos, max }: { vehicleId: string; ph
     setPending(true);
     let added = 0;
     for (const file of files) {
-      const blob = await prepareForUpload(file);
+      const blob = await downscaleImage(file);
       const fd = new FormData();
       fd.set("vehicleId", vehicleId);
       fd.append("photos", blob, file.name.replace(/\.[^.]+$/, "") + (blob.type === "image/jpeg" ? ".jpg" : ""));

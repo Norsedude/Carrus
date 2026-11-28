@@ -64,7 +64,22 @@ export async function recordPickupCheck(admin: Db, customerId: string, bookingId
   const message = missing.length > 0 ? missingPhotosMessage(missing) : undefined;
   if (message || Object.keys(fieldErrors).length > 0) return { ok: false, message, fieldErrors };
 
+  // Check the caller and booking state before writing anything to storage, so
+  // nobody can place files in another booking's folder. The database function
+  // re-checks both in the same transaction as the save.
+  const { data: booking } = await admin.from("bookings").select("customer_id, state").eq("id", bookingId).maybeSingle();
+  if (!booking || booking.customer_id !== customerId) return { ok: false, message: "Reservation not found.", fieldErrors: {} };
+  if (booking.state !== "ready_for_pickup") {
+    return { ok: false, message: "This reservation is not ready for pickup, or its condition check was already saved.", fieldErrors: {} };
+  }
+
   const uploaded: { category: PhotoCategory; path: string; contentType: PhotoContentType; sizeBytes: number }[] = [];
+  let cleanedUp = false;
+  const cleanUp = async () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    await removePhotos(admin, uploaded.map((u) => u.path));
+  };
   try {
     for (const p of accepted) {
       const path = photoPath(bookingId, "pickup", p.category, p.contentType, randomUUID());
@@ -83,7 +98,7 @@ export async function recordPickupCheck(admin: Db, customerId: string, bookingId
       _photos: uploaded,
     });
     if (error) {
-      await removePhotos(admin, uploaded.map((u) => u.path));
+      await cleanUp();
       if (error.message.includes("not ready for pickup")) {
         return { ok: false, message: "This reservation is not ready for pickup, or its condition check was already saved.", fieldErrors: {} };
       }
@@ -94,13 +109,20 @@ export async function recordPickupCheck(admin: Db, customerId: string, bookingId
     }
     return { ok: true };
   } catch {
-    await removePhotos(admin, uploaded.map((u) => u.path));
+    await cleanUp();
     return { ok: false, message: "We could not upload the photos. Try again.", fieldErrors: {} };
   }
 }
 
+/** Best-effort removal of photos from a failed save. Never throws; failures are logged with the paths left behind. */
 async function removePhotos(admin: Db, paths: string[]) {
-  if (paths.length > 0) await admin.storage.from(INSPECTION_BUCKET).remove(paths);
+  if (paths.length === 0) return;
+  try {
+    const { error } = await admin.storage.from(INSPECTION_BUCKET).remove(paths);
+    if (error) console.error(`[inspections] could not remove ${paths.length} orphaned photo(s): ${error.message}`, paths);
+  } catch (e) {
+    console.error("[inspections] photo cleanup failed", e instanceof Error ? e.message : e, paths);
+  }
 }
 
 export type InspectionView = {

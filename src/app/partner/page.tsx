@@ -7,6 +7,7 @@ import { formatCents } from "@/lib/money";
 import { formatDateTime } from "@/lib/time";
 import type { VehicleSnapshot } from "@/server/booking/service";
 import { expirePendingRequests } from "@/server/booking/requests";
+import { isOutOnRental } from "@/server/booking/out-on-rental";
 
 export const metadata: Metadata = { title: "Partner dashboard" };
 
@@ -30,11 +31,7 @@ export default async function PartnerDashboardPage({ searchParams }: { searchPar
   const vehicles = vehicleRows ?? [];
   const bookings = bookingRows ?? [];
   const now = getNow().getTime();
-  const out = new Set(
-    bookings
-      .filter((b) => b.state === "active" || (b.state === "confirmed" && new Date(b.pickup_at).getTime() <= now && new Date(b.return_at).getTime() > now))
-      .map((b) => b.vehicle_id),
-  );
+  const out = new Set(bookings.filter((b) => isOutOnRental(b, now)).map((b) => b.vehicle_id));
   const booked = bookings.filter((b) => ["confirmed", "ready_for_pickup", "active", "completed"].includes(b.state));
   const revenue = booked.reduce((sum, b) => sum + b.total_cents, 0);
   const requests = bookings.filter((b) => b.state === "pending_partner");

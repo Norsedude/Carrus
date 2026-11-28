@@ -83,11 +83,18 @@ export function checkPhoto(file: { size: number; head: Uint8Array }): PhotoCheck
   return { ok: true, contentType };
 }
 
-/** Browser-side check before upload, from the name and declared type only. The server re-checks the bytes. */
+/**
+ * Browser-side check before upload, from the name and declared type only. The
+ * server re-checks the bytes, so this only needs to stop obvious mistakes.
+ * Some systems report a blank type or an alias (image/jpg, image/pjpeg) for
+ * real photos, so a matching extension with a blank or image/* type is fine.
+ */
 export function quickCheckPhoto(file: { name: string; type: string; size: number }): string | null {
-  const byType = (ALLOWED_PHOTO_TYPES as readonly string[]).includes(file.type);
+  const type = file.type.toLowerCase();
+  const byType = (ALLOWED_PHOTO_TYPES as readonly string[]).includes(type) || ["image/jpg", "image/pjpeg", "image/x-png"].includes(type);
   const byName = /\.(jpe?g|png)$/i.test(file.name);
-  if (!byType || !byName) return MESSAGES.wrongType;
+  const typeAllowsName = type === "" || type.startsWith("image/");
+  if (!byType && !(byName && typeAllowsName)) return MESSAGES.wrongType;
   if (file.size > MAX_PHOTO_BYTES) return MESSAGES.tooLarge;
   return null;
 }
