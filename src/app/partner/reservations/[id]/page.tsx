@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PrepareVehicleForm } from "@/components/inspection-forms";
+import { InspectionRecord } from "@/components/inspection-record";
 import { PriceBreakdownView } from "@/components/price";
 import { TripSummary } from "@/components/trip-summary";
 import { respondToRequestAction } from "@/app/actions/requests";
 import { Notice, PageShell, StateBadge, btnPrimary, btnSecondary, cardCls, inputCls, linkCls } from "@/components/ui";
 import { requireVerifiedPartner } from "@/lib/auth/partner";
+import { createAdminClient } from "@/lib/supabase/server";
+import { formatDateTime } from "@/lib/time";
+import { getInspections } from "@/server/inspections/service";
 import type { VehicleSnapshot } from "@/server/booking/service";
 import type { PriceBreakdown } from "@/server/pricing/pricing";
-import { formatDateTime } from "@/lib/time";
 import { expirePendingRequests } from "@/server/booking/requests";
 
 const RESULTS: Record<string, { tone: "success" | "warning" | "error"; text: string }> = {
@@ -28,6 +32,8 @@ export default async function PartnerReservationPage({ params, searchParams }: {
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const { data: b } = await db.from("bookings").select("*").eq("id", id).eq("partner_id", partner.id).maybeSingle();
   if (!b) notFound();
+  const vehicle = b.vehicle_snapshot as unknown as VehicleSnapshot;
+  const inspections = await getInspections(db, createAdminClient(), b.id);
 
   return (
     <PageShell title={`Reservation ${b.reference}`}>
@@ -40,7 +46,7 @@ export default async function PartnerReservationPage({ params, searchParams }: {
             <p className="flex items-center gap-2 text-sm text-gray-700">
               Status: <StateBadge state={b.state} />
             </p>
-            <TripSummary vehicle={b.vehicle_snapshot as unknown as VehicleSnapshot} pickupAt={b.pickup_at} returnAt={b.return_at} />
+            <TripSummary vehicle={vehicle} pickupAt={b.pickup_at} returnAt={b.return_at} />
             <p className="text-sm text-gray-700">
               Driver contact: <span className="font-medium text-gray-900">{b.contact_name || "Not provided"}</span>
               {b.contact_phone ? ` · ${b.contact_phone}` : ""}
@@ -51,7 +57,7 @@ export default async function PartnerReservationPage({ params, searchParams }: {
             <section className={`${cardCls} space-y-4 p-5`} aria-labelledby="respond-heading">
               <h2 id="respond-heading" className="text-xl">Respond to this request</h2>
               <p className="text-sm text-gray-600">
-                Answer by {b.respond_by ? formatDateTime(b.respond_by, (b.vehicle_snapshot as unknown as VehicleSnapshot).timeZone) : "the deadline"}. If you do not answer, the request expires and the customer is refunded.
+                Answer by {b.respond_by ? formatDateTime(b.respond_by, vehicle.timeZone) : "the deadline"}. If you do not answer, the request expires and the customer is refunded.
               </p>
               <div className="flex flex-wrap items-start gap-3">
                 <form action={respondToRequestAction}>
@@ -70,6 +76,23 @@ export default async function PartnerReservationPage({ params, searchParams }: {
             </section>
           )}
           {b.state === "declined" && b.decline_reason && <Notice tone="info">Declined: {b.decline_reason}</Notice>}
+          {b.state === "confirmed" && (
+            <details className={`${cardCls} p-5`}>
+              <summary className="cursor-pointer text-base font-semibold text-brand">Prepare vehicle</summary>
+              <div className="mt-3">
+                <PrepareVehicleForm bookingId={b.id} />
+              </div>
+            </details>
+          )}
+          {b.ready_at && (
+            <Notice tone="success" title="Ready for pickup">
+              Marked ready on {formatDateTime(b.ready_at, vehicle.timeZone)}.
+              {b.state === "ready_for_pickup" && " The customer completes the pickup condition check when they collect the vehicle."}
+            </Notice>
+          )}
+          {inspections.map((inspection) => (
+            <InspectionRecord key={inspection.stage} inspection={inspection} timeZone={vehicle.timeZone} />
+          ))}
         </div>
         <aside className={`${cardCls} h-fit p-5`}>
           <PriceBreakdownView price={b.price_snapshot as unknown as PriceBreakdown} heading="Price charged to the customer" />

@@ -46,6 +46,15 @@ Last full check run (2026-11-14, after the restyle): lint clean, typecheck clean
 - Home page strip shows the nine company names from the presentation as plain wordmarks with a "not connected or affiliated" note (D-019 revised).
 - Favorites, Inbox, Help, Save search, Share, ratings and trip counts from the mockup are **not built** and not shown.
 
+### F6 pickup condition check (2026-11-17, branch `feat/f6-pickup-inspection`)
+
+- Partner: "Prepare vehicle" on a confirmed reservation, with "Vehicle is clean" and "Fuel level is Full", then "Confirm ready" (state becomes Ready for pickup, `bookings.ready_at` saved, audit event).
+- Customer: "Start condition check" on a ready trip opens `/trips/[id]/pickup-check`: exterior damage, fuel level, cleanliness, one photo each for exterior, fuel gauge and interior, and an acknowledgment. Saving moves the reservation to Active. Both the trip page and the partner reservation page show the saved record with timestamped photos.
+- Database: migration `20261125000001_pickup_inspections.sql` (tables `inspections` and `inspection_photos`, private bucket `inspection-photos`, functions `mark_ready_for_pickup` and `record_pickup_inspection`). The return inspection (F7) reuses the same tables with stage `return`.
+- `npm run seed:sanjay` now also creates reservations #1001 (confirmed), #1002 and #1003 (ready for pickup) on archived RAV4 test units, so search results are unchanged.
+- Checked so far: lint, typecheck, unit tests, production build, and the migration's functions and row-level security in an in-memory Postgres. Integration tests now run on GitHub for every pull request (`.github/workflows/integration.yml`), so team members without Docker still get results. A browser pass is still to do.
+- Server actions and the proxy accept bodies up to 32 MB (three 10 MB photos) in `next.config.ts`.
+
 ### Working (real code, covered by executed tests)
 
 - **Accounts:** sign up, sign in, sign out, password reset by emailed link (local mail catcher), profile edit, session persists across reloads. Supabase Auth; no custom password handling.
@@ -70,9 +79,9 @@ Last full check run (2026-11-14, after the restyle): lint clean, typecheck clean
 
 ### Not built yet
 
-- Milestone C: cancellation, inspections (pickup/return, photos), fee assessment, disputes, refunds, payout ledger, admin reports, Sanjay reservations #1001–#1011.
+- Milestone C: cancellation, return inspection and fee assessment (F7), disputes (F8), refunds, payout ledger, admin reports, Sanjay reservations #1004–#1011. (Pickup inspection, F6, is built above.)
 - Milestone D remainder: Stripe sandbox, admin MFA, transactional email provider (the notifications outbox is ready for it). Hosting is live.
-- CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests and build on pull requests and pushes to `main`. Integration and browser tests need the local Supabase stack (PR #2 adds an integration workflow).
+- CI runs lint, typecheck, unit tests and build (`ci.yml`) and the database integration tests (`integration.yml`) on pull requests and pushes to `main`. Browser tests still run locally only.
 - Mockup alignment: the Figma mockup (see below) was received after the UI was built. Current styling is the provisional default and does **not** match it yet.
 
 ## Design reference

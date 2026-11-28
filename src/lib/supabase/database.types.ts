@@ -91,14 +91,14 @@ isOneToOne: false
                   ]
                 },"bookings": {
                   Row: {
-                    "contact_name": string,"contact_phone": string,"created_at": string,"customer_id": string,"decline_reason": string | null,"id": string,"partner_approved_at": string | null,"partner_id": string,"pickup_at": string,"price_snapshot": NonNullable<Json>,"quote_id": string | null,"reference": string,"respond_by": string | null,"return_at": string,"state": string,"total_cents": number,"updated_at": string,"vehicle_id": string,"vehicle_snapshot": NonNullable<Json>
+                    "contact_name": string,"contact_phone": string,"created_at": string,"customer_id": string,"decline_reason": string | null,"id": string,"partner_approved_at": string | null,"partner_id": string,"pickup_at": string,"price_snapshot": NonNullable<Json>,"quote_id": string | null,"ready_at": string | null,"ready_by": string | null,"reference": string,"respond_by": string | null,"return_at": string,"state": string,"total_cents": number,"updated_at": string,"vehicle_id": string,"vehicle_snapshot": NonNullable<Json>
                   }
                   ComputedFields: never
                   Insert: {
-                    "contact_name"?: string,"contact_phone"?: string,"created_at"?: string,"customer_id": string,"decline_reason"?: string | null,"id"?: string,"partner_approved_at"?: string | null,"partner_id": string,"pickup_at": string,"price_snapshot": NonNullable<Json>,"quote_id"?: string | null,"reference": string,"respond_by"?: string | null,"return_at": string,"state": string,"total_cents": number,"updated_at"?: string,"vehicle_id": string,"vehicle_snapshot": NonNullable<Json>
+                    "contact_name"?: string,"contact_phone"?: string,"created_at"?: string,"customer_id": string,"decline_reason"?: string | null,"id"?: string,"partner_approved_at"?: string | null,"partner_id": string,"pickup_at": string,"price_snapshot": NonNullable<Json>,"quote_id"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"reference": string,"respond_by"?: string | null,"return_at": string,"state": string,"total_cents": number,"updated_at"?: string,"vehicle_id": string,"vehicle_snapshot": NonNullable<Json>
                   }
                   Update: {
-                    "contact_name"?: string,"contact_phone"?: string,"created_at"?: string,"customer_id"?: string,"decline_reason"?: string | null,"id"?: string,"partner_approved_at"?: string | null,"partner_id"?: string,"pickup_at"?: string,"price_snapshot"?: NonNullable<Json>,"quote_id"?: string | null,"reference"?: string,"respond_by"?: string | null,"return_at"?: string,"state"?: string,"total_cents"?: number,"updated_at"?: string,"vehicle_id"?: string,"vehicle_snapshot"?: NonNullable<Json>
+                    "contact_name"?: string,"contact_phone"?: string,"created_at"?: string,"customer_id"?: string,"decline_reason"?: string | null,"id"?: string,"partner_approved_at"?: string | null,"partner_id"?: string,"pickup_at"?: string,"price_snapshot"?: NonNullable<Json>,"quote_id"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"reference"?: string,"respond_by"?: string | null,"return_at"?: string,"state"?: string,"total_cents"?: number,"updated_at"?: string,"vehicle_id"?: string,"vehicle_snapshot"?: NonNullable<Json>
                   }
                   Relationships: [
                     {
@@ -134,6 +134,46 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"inspection_photos": {
+                  Row: {
+                    "category": string,"content_type": string,"id": string,"inspection_id": string,"size_bytes": number,"storage_path": string,"uploaded_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "category": string,"content_type": string,"id"?: string,"inspection_id": string,"size_bytes": number,"storage_path": string,"uploaded_at"?: string
+                  }
+                  Update: {
+                    "category"?: string,"content_type"?: string,"id"?: string,"inspection_id"?: string,"size_bytes"?: number,"storage_path"?: string,"uploaded_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "inspection_photos_inspection_id_fkey"
+      columns: ["inspection_id"]
+isOneToOne: false
+      referencedRelation: "inspections"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"inspections": {
+                  Row: {
+                    "acknowledged_at": string,"booking_id": string,"cleanliness": string,"created_at": string,"exterior_damage": string,"fuel_level": string,"id": string,"performed_by": string,"performed_role": string,"stage": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acknowledged_at"?: string,"booking_id": string,"cleanliness": string,"created_at"?: string,"exterior_damage": string,"fuel_level": string,"id"?: string,"performed_by": string,"performed_role": string,"stage": string
+                  }
+                  Update: {
+                    "acknowledged_at"?: string,"booking_id"?: string,"cleanliness"?: string,"created_at"?: string,"exterior_damage"?: string,"fuel_level"?: string,"id"?: string,"performed_by"?: string,"performed_role"?: string,"stage"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "inspections_booking_id_fkey"
+      columns: ["booking_id"]
+isOneToOne: false
+      referencedRelation: "bookings"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"notifications": {
                   Row: {
@@ -397,6 +437,12 @@ isOneToOne: false
                            },
 "hit_rate_limit":
 { Args: { "_bucket": string,"_limit": number,"_window_seconds": number }; Returns: boolean
+                           },
+"mark_ready_for_pickup":
+{ Args: { "_booking": string,"_fuel_full": boolean,"_vehicle_clean": boolean }; Returns: undefined
+                           },
+"record_pickup_inspection":
+{ Args: { "_actor": string,"_booking": string,"_cleanliness": string,"_exterior_damage": string,"_fuel_level": string,"_photos": Json }; Returns: string
                            },
 "respond_to_booking":
 { Args: { "_approve": boolean,"_booking": string,"_reason"?: string }; Returns: Json
