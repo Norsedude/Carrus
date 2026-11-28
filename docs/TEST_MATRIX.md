@@ -45,8 +45,24 @@ Levels: U = `tests/unit`, I = `tests/integration`, E = `tests/e2e` (real browser
 | TC-BC03 | Back/resubmit idempotent | Pass | I (same key replay), E (back then revisit) |
 | TC-BC04 | CUSTOMER-02 cannot read CUSTOMER-01 confirmation | Pass | I, E |
 
+## Milestone B (2026-11-27)
+
+| Case | Expectation | Result | Where |
+|---|---|---|---|
+| MB-RTB01 | Request-mode checkout creates a pending request that holds the car; partner approves; both notified | Pass | I, E |
+| MB-RTB02 | Other partner cannot answer; answering twice is a no-op | Pass | I |
+| MB-RTB03 | Decline frees the car, refunds, shows the reason | Pass | I |
+| MB-RTB04 | No answer by the deadline expires the request and refunds; late approval refused | Pass | I |
+| MB-N01 | Notifications are private, markable read, not insertable by users | Pass | I, E |
+| MB-SS01 | Saved searches private by RLS, URLs rejected, save/reopen/delete in the UI | Pass | I, E |
+| MB-AV01 | Multiple availability windows saved; calendar shows available/booked days | Pass | U, I, E |
+| MB-PH01 | Photo stored in public bucket; only the owner can attach; non-images and >10 MB refused | Pass | U, I, E |
+| MB-RL01 | Rate limiter allows N per window, then refuses; server-only | Pass | I |
+| MB-LK01 | Pasted link: private addresses blocked; metadata parsed (JSON-LD, Open Graph, $/day); manual entry; compared side by side | Pass | U, E |
+| MB-API01 | `/api/search` matches the search page; invalid input returns `{ error }` | Pass | manual (curl) |
+
 ## Added coverage (not in the source test document)
 
 Passing: sign up / sign in / wrong password / sign out / session persistence (E); password reset by emailed link (E); profile ownership (I); role-escalation attempts by a customer (I); partner cross-account access (I); unpublished listing invisible (I); unverified partner cannot list (I, E); true simultaneous holds by two customers (I); block racing a booking (I); price change and expired quote (I); payment success after hold expiry refunded (I); idempotency key reuse with different input (I); adjacent rentals allowed (I); provider partial and total failure, timeout (U); daylight-saving billable days (U); radius boundary (U).
 
-Not covered yet: webhook replay (no webhooks exist), cancellation and refunds, saved searches, file size limits, notification retries, keyboard-only and responsive browser runs, bulk sync, wallets, deposits, moderation appeals, reports, payouts, reviews.
+Not covered yet: webhook replay (no webhooks exist), cancellation and refunds, notification email retries (no email provider), keyboard-only and responsive browser runs, bulk sync, wallets, deposits, moderation appeals, reports, payouts, reviews.

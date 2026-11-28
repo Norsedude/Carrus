@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth/session";
 import { grantGuestAccess } from "@/lib/guest-access";
+import { RATE_LIMITED_MESSAGE, allowRequest } from "@/lib/rate-limit";
 import { getNow } from "@/lib/clock";
 import { createAdminClient } from "@/lib/supabase/server";
 import { createExternalDemoOrder, confirmExternalDemoOrder } from "@/server/booking/external-demo";
@@ -114,6 +115,7 @@ async function guestExternalDemo(form: FormData): Promise<ExternalDemoState> {
   );
   if (!validated.ok) return { values, fieldErrors: {}, message: "These trip dates are no longer valid. Return to search for a fresh offer." };
   const { criteria } = validated;
+  if (!(await allowRequest("guestCheckout"))) return { values, fieldErrors: {}, message: `${RATE_LIMITED_MESSAGE} No payment was made.` };
   const admin = createAdminClient();
   let orderId: string | null = null;
   let userId: string;

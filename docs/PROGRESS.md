@@ -3,7 +3,26 @@
 Compact state for resuming work. Update it whenever something lands.
 Source brief: `CARRUS_HANDOFF.md` (supplied by Mateo in chat on 2026-11-14; not yet saved in the repo, see OPEN_QUESTIONS Q-11).
 
-## Status as of 2026-11-14
+## Status as of 2026-11-27
+
+### Milestone B complete (2026-11-27)
+
+Migration `20261127000001_milestone_b.sql`. All features run against the database and are covered by executed tests.
+
+- **Listing photos:** partners upload up to 8 JPG/PNG/WebP photos per listing on the edit page, choose the cover photo and remove photos. Files are checked by content (not name), limited to 10,000,000 bytes, downscaled in the browser and sent one per request (Vercel's 4.5 MB request cap), stored in the public `vehicle-photos` bucket. Vehicle pages show a photo gallery.
+- **Availability:** listings can have up to 12 availability windows. Vehicle pages show a two-month calendar (available / booked / not offered, plus "your trip") from `vehicle_busy_periods`, which exposes busy times only, never customer details.
+- **Request to book:** a listing's booking mode can be "Request to book". Checkout then creates a `pending_partner` reservation that holds the car for 24 hours; the partner approves or declines (optional reason) from the reservation page or the dashboard alert. Decline or no answer frees the car and refunds the simulated payment (`respond_to_booking`, `expire_pending_requests`, swept lazily on page loads).
+- **Notifications outbox + Inbox:** booking confirmed / requested / approved / declined / expired and partner "new booking/request" messages are written in the same transaction as the booking change. Header bell with unread count, `/inbox`, mark all read. `email_status` is the outbox state; no email provider is wired yet.
+- **Saved searches:** "Save search" on results (signed in), list and delete under Account, private by RLS, 20 per user.
+- **Rate limiting:** Postgres fixed-window limiter (`hit_rate_limit`) on sign-in, sign-up, password reset, guest checkout, link import, saving searches and the JSON API. On in production (or `RATE_LIMIT_ENABLED=true`); off in local dev and tests.
+- **JSON API:** `GET /api/search`, `GET /api/vehicles/:id`, `POST /api/link-preview`, one `{ data } | { error }` shape.
+- **Compare a pasted link:** "Add a link" (search page hint, compare tray and side-by-side panel) fetches one public page on request and reads its Open Graph / schema.org metadata (title, photo, make/model/year, seats, price per day or total). Anything missing is typed by the user. The fetch blocks private/loopback/metadata addresses at connect time, allows only http(s) on standard ports, caps redirects, size and time, and does not get around logins, paywalls or bot blocks. Up to 2 links alongside up to 3 search results; links live in this browser only.
+
+Fixes found while testing: extra availability rows reused the first row's input id (dates went into the wrong field); the footer "Account" link made the sign-in check pass before sign-in finished; partner cards lost the visible "Verified partner" text; the new e2e test for guest checkout now runs.
+
+Last full check run (2026-11-27): lint clean, typecheck clean, 70 unit tests, 33 integration tests, 18 browser tests (local Supabase), production build. All passed.
+
+## Earlier status (2026-11-14)
 
 ### Partner feed connector (2026-11-21)
 
@@ -13,7 +32,7 @@ Source brief: `CARRUS_HANDOFF.md` (supplied by Mateo in chat on 2026-11-14; not 
 - Added a separate external **demo checkout**: offer review, test-card validation, quote freshness and price recheck, simulated confirmation, original listing link, and demo history under Trips. Its records live in `external_demo_orders` and never create native bookings or provider reservations. Migration `20261121000001` is ready but could not be applied locally because Docker Desktop was not running during this work.
 - `PROVIDER_MODE=native+demo` now supplies two fictional offers with complete example prices and links to Carrus-owned fictional source pages, so the demo checkout can be exercised locally without partner credentials. No outside company data is used.
 
-Branch `feat/milestone-a` (local only, not pushed). Stack: Next.js 16 + local Supabase (see DECISIONS D-001).
+Stack: Next.js 16 + Supabase (see DECISIONS D-001). Hosted on Vercel from `main` with a hosted Supabase project; migrations deploy through the Supabase GitHub integration.
 
 Last full check run (2026-11-14, after the restyle): lint clean, typecheck clean, 46 unit tests, 24 integration tests, 13 browser tests, production build. All passed.
 
@@ -51,10 +70,9 @@ Last full check run (2026-11-14, after the restyle): lint clean, typecheck clean
 
 ### Not built yet
 
-- Milestone B remainder: listing photo upload and storage, multiple availability windows / calendar, request-to-book mode with partner approve/decline, searches/saved searches tables, notifications outbox, rate limiting, consistent JSON API routes (pages use server actions today).
 - Milestone C: cancellation, inspections (pickup/return, photos), fee assessment, disputes, refunds, payout ledger, admin reports, Sanjay reservations #1001–#1011.
-- Milestone D: hosting, hosted Supabase, Stripe sandbox, admin MFA.
-- CI workflow file exists (`.github/workflows/ci.yml`) but has **never run**; it covers lint, typecheck, unit tests and build only.
+- Milestone D remainder: Stripe sandbox, admin MFA, transactional email provider (the notifications outbox is ready for it). Hosting is live.
+- CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests and build on pull requests and pushes to `main`. Integration and browser tests need the local Supabase stack (PR #2 adds an integration workflow).
 - Mockup alignment: the Figma mockup (see below) was received after the UI was built. Current styling is the provisional default and does **not** match it yet.
 
 ## Design reference
@@ -66,10 +84,9 @@ The mockup conflicts with the handoff in several places; see OPEN_QUESTIONS Q-12
 
 ## Next steps (proposed order)
 
-1. Get answers to Q-12–Q-16, then restyle to the mockup screen by screen.
-2. Listing photos (storage buckets + policies), availability calendar.
-3. Request-to-book mode and partner approve/decline.
-4. Milestone C trust workflow; seed Sanjay reservations.
+1. Merge PR #2 (pickup inspection, F6) and build the rest of Milestone C on it: cancellation and refunds first, then return inspection, fees, disputes, payouts.
+2. Milestone D remainder: email provider for the notifications outbox, Stripe sandbox, admin MFA.
+3. Answer the remaining open questions (Q-01, Q-02, Q-04, Q-06, Q-07, Q-10 to Q-12, Q-16, Q-17).
 
 ## Environment notes
 

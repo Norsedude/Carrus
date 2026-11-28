@@ -62,6 +62,11 @@ export default async function BookingReviewPage({ params }: { params: Promise<{ 
           <PriceBreakdownView price={quote.breakdown} />
           {status === "ok" && (
             <>
+              {v.bookingMode === "request" && (
+                <Notice tone="info" title="Host approval required">
+                  The host has 24 hours to accept. Your demo card is charged at checkout and refunded automatically if they decline or do not answer.
+                </Notice>
+              )}
               <Link href={`/checkout/${quote.id}`} className={`${btnPrimary} w-full`}>Continue to checkout</Link>
               <p className="text-xs text-gray-600">
                 {user ? "" : "No account needed: checkout only asks for your email. "}

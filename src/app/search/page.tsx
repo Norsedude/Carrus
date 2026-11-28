@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { Bookmark, MapPin } from "lucide-react";
+import { saveSearchAction } from "@/app/actions/account";
 import { CompareHint, CompareTray } from "@/components/compare";
 import { FilterSidebar } from "@/components/filter-sidebar";
 import { FiltersPanel } from "@/components/filters-panel";
@@ -20,6 +21,13 @@ export const metadata: Metadata = { title: "Search results" };
 
 const SORT_CHIPS: Record<SortOption, string> = { total_asc: "Lowest total", daily_asc: "Lowest daily rate", distance_asc: "Closest" };
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
+/** One-off flags that should not stick to links or saved searches. */
+const TRANSIENT = new Set(["page", "saved", "external"]);
+const SAVED_NOTES: Record<string, { tone: "success" | "warning" | "error"; text: string }> = {
+  yes: { tone: "success", text: "Search saved. Find it under Account → Saved searches." },
+  full: { tone: "warning", text: "You have 20 saved searches. Delete one in your account to save another." },
+  error: { tone: "error", text: "That search could not be saved. Try again." },
+};
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<RawParams> }) {
   const raw = await searchParams;
@@ -51,10 +59,18 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const result = await runSearch(criteria, enabledAdapters(db, serverEnv().PROVIDER_MODE));
   const trip = { pickup: criteria.pickupLocal, ret: criteria.returnLocal, location: criteria.locationLabel, radius: criteria.radiusMiles };
 
+  const savedQuery = (() => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(raw)) {
+      if (TRANSIENT.has(key) || value === undefined) continue;
+      for (const v of Array.isArray(value) ? value : [value]) params.append(key, v);
+    }
+    return params.toString();
+  })();
   const hrefWith = (changes: Record<string, string>) => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(raw)) {
-      if (key in changes || key === "page" || value === undefined) continue;
+      if (key in changes || TRANSIENT.has(key) || value === undefined) continue;
       for (const v of Array.isArray(value) ? value : [value]) params.append(key, v);
     }
     for (const [key, value] of Object.entries(changes)) params.set(key, value);
@@ -114,9 +130,18 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
         <section key={JSON.stringify(raw)} aria-labelledby="results-heading" className="page-enter min-w-0 space-y-4">
           <div>
-            <h2 id="results-heading" className="text-4xl text-gray-900 sm:text-5xl" data-testid="result-count">
-              {result.resultCount} vehicle{result.resultCount === 1 ? "" : "s"} found
-            </h2>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 id="results-heading" className="text-4xl text-gray-900 sm:text-5xl" data-testid="result-count">
+                {result.resultCount} vehicle{result.resultCount === 1 ? "" : "s"} found
+              </h2>
+              <form action={saveSearchAction}>
+                <input type="hidden" name="query" value={savedQuery} />
+                <input type="hidden" name="name" value={`${criteria.locationLabel}${criteria.vehicleTypes.length ? ` · ${criteria.vehicleTypes.join(", ")}` : ""}`} />
+                <button type="submit" className="inline-flex items-center gap-2 rounded-full border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:border-gray-900 hover:text-gray-900">
+                  <Bookmark className="size-4" aria-hidden /> Save search
+                </button>
+              </form>
+            </div>
             <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Applied filters">
               {applied.map((a) => (
                 <li key={a} className="rounded-full bg-accent-soft px-3 py-1 text-[0.8rem] text-accent">{a}</li>
@@ -162,6 +187,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           {result.warnings.map((w) => (
             <Notice key={w} tone="info">{w}</Notice>
           ))}
+          {SAVED_NOTES[one(raw.saved)] && <Notice tone={SAVED_NOTES[one(raw.saved)].tone}>{SAVED_NOTES[one(raw.saved)].text}</Notice>}
           {one(raw.external) === "unavailable" && (
             <Notice tone="warning">That provider offer could not be checked right now. No demo checkout was started.</Notice>
           )}
@@ -176,7 +202,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             </div>
           )}
 
-          {result.resultCount > 0 && <CompareHint />}
+          {result.resultCount > 0 && <CompareHint trip={{ pickup: trip.pickup, ret: trip.ret, location: trip.location }} />}
           <ul className="space-y-4">
             {result.listings.map((listing) => (
               <VehicleCard key={listing.id} listing={listing} trip={trip} />

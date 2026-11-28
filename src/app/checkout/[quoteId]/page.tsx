@@ -36,6 +36,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ quote
             amountLabel={formatCents(quote.breakdown.dueNowCents)}
             backHref={`/booking/${quote.id}`}
             guest={!user}
+            requestMode={quote.vehicle.bookingMode === "request"}
             initial={{
               idempotencyKey: randomUUID(),
               fieldErrors: {},

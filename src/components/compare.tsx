@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowUpRight, Check, Columns3, X } from "lucide-react";
+import { ArrowUpRight, Check, Columns3, Link as LinkIcon, Loader2, X } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { btnPrimary, btnSecondary } from "@/components/ui";
+import { Notice, btnPrimary, btnSecondary, inputCls } from "@/components/ui";
 
 // Comparison list: up to three unique listing ids for one rental interval.
 // Kept in localStorage because it is a per-browser convenience (no account
@@ -12,6 +12,10 @@ import { btnPrimary, btnSecondary } from "@/components/ui";
 // always re-checks price and availability.
 
 export const MAX_COMPARE = 3;
+/** Listings pasted from other sites, on top of the search picks. */
+export const MAX_LINKS = 2;
+export const isLinkId = (id: string) => id.startsWith("link:");
+const searchIds = (ids: string[]) => ids.filter((id) => !isLinkId(id));
 const KEY = "carrus.compare.v2";
 const EVENT = "carrus-compare-change";
 
@@ -33,6 +37,9 @@ export type CompareSnapshot = {
   lines: { code: string; label: string; cents: number }[];
   href: string;
   external: boolean;
+  /** Added from a pasted link: details come from that page or the user. */
+  fromLink?: boolean;
+  estimate?: boolean;
 };
 
 type CompareState = {
@@ -61,7 +68,7 @@ function read(): CompareState {
     cachedState =
       parsed && Array.isArray(parsed.ids)
         ? {
-            ids: parsed.ids.filter((x) => typeof x === "string").slice(0, MAX_COMPARE),
+            ids: parsed.ids.filter((x) => typeof x === "string").slice(0, MAX_COMPARE + MAX_LINKS),
             names: parsed.names && typeof parsed.names === "object" ? parsed.names : {},
             items: parsed.items && typeof parsed.items === "object" ? parsed.items : {},
             pickup: parsed.pickup ?? "",
@@ -101,7 +108,9 @@ type Trip = { ids: string[]; pickup: string; ret: string; location: string };
 
 export function compareHref(state: Trip): string {
   const params = new URLSearchParams();
-  if (state.ids.length) params.set("ids", state.ids.join(","));
+  // Pasted links live only in this browser, so the server page cannot load them.
+  const ids = searchIds(state.ids);
+  if (ids.length) params.set("ids", ids.join(","));
   if (state.pickup) params.set("pickup", state.pickup);
   if (state.ret) params.set("return", state.ret);
   if (state.location) params.set("location", state.location);
@@ -157,7 +166,7 @@ export function CompareToggle({
     // A comparison uses one rental interval: starting a new search resets it.
     const sameTrip = state.pickup === pickup && state.ret === ret;
     const ids = sameTrip ? state.ids : [];
-    if (ids.length >= MAX_COMPARE) {
+    if (searchIds(ids).length >= MAX_COMPARE) {
       setMessage(`You can compare up to ${MAX_COMPARE} vehicles. Remove one to add another.`);
       return;
     }
@@ -221,6 +230,7 @@ export function CompareTray() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <AddLinkButton trip={state} variant="dark" />
             <button
               type="button"
               onClick={() => setOpen(true)}
@@ -229,14 +239,17 @@ export function CompareTray() {
             >
               <Columns3 className="size-4" aria-hidden /> Compare here
             </button>
-            <Link href={compareHref(state)} className={`${btnSecondary} !border-snow/40 !text-snow hover:!border-snow hover:!bg-transparent`}>
-              Compare {state.ids.length} vehicle{state.ids.length === 1 ? "" : "s"}
-            </Link>
+            {searchIds(state.ids).length > 0 && (
+              <Link href={compareHref(state)} className={`${btnSecondary} !border-snow/40 !text-snow hover:!border-snow hover:!bg-transparent`}>
+                Compare {state.ids.length} vehicle{state.ids.length === 1 ? "" : "s"}
+              </Link>
+            )}
           </div>
         </div>
         <ul className="mt-3 flex flex-wrap gap-2">
           {state.ids.map((id) => (
             <li key={id} className="flex items-center gap-2 rounded-full bg-snow/10 py-1.5 pl-3 pr-1.5 text-sm">
+              {isLinkId(id) && <LinkIcon className="size-3.5 opacity-70" aria-hidden />}
               {state.names[id] ?? "Selected vehicle"}
               <button
                 type="button"
@@ -280,7 +293,7 @@ function CompareSheet({ state, onClose, onRemove }: { state: CompareState; onClo
   const lineCodes = [...new Set(known.flatMap((c) => c.item.lines.map((l) => l.code)))];
   const rows: [string, (s: CompareSnapshot) => string][] = [
     ["Type", (s) => s.type],
-    ["Seats", (s) => String(s.seats)],
+    ["Seats", (s) => (s.seats ? String(s.seats) : "—")],
     ["Transmission", (s) => s.transmission],
     ["Match", (s) => (s.exact ? "Exact vehicle" : "Or similar")],
     ["Distance", (s) => (s.distanceMiles === null ? "—" : `${s.distanceMiles.toFixed(1)} mi`)],
@@ -316,10 +329,12 @@ function CompareSheet({ state, onClose, onRemove }: { state: CompareState; onClo
                     ) : (
                       <div className="mb-3 aspect-[3/2] w-full rounded-xl bg-accent-soft" />
                     )}
-                    <p className="text-base font-semibold text-gray-900">{item ? `${item.year} ${item.name}` : state.names[id] ?? "Selected vehicle"}</p>
+                    <p className="text-base font-semibold text-gray-900">{item ? `${item.year ? `${item.year} ` : ""}${item.name}` : state.names[id] ?? "Selected vehicle"}</p>
                     <p className="mt-1.5 flex flex-wrap gap-1.5">
                       {item && item.totalCents === cheapest && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[0.7rem] font-medium text-emerald-900">Lowest total</span>}
                       {item?.demo && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.7rem] font-medium text-amber-900">Demo</span>}
+                      {item?.fromLink && <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[0.7rem] font-medium text-accent">Your link</span>}
+                      {item?.estimate && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[0.7rem] font-medium text-gray-700">Est. total</span>}
                     </p>
                   </th>
                 ))}
@@ -356,9 +371,9 @@ function CompareSheet({ state, onClose, onRemove }: { state: CompareState; onClo
                 {cols.map(({ id, item }) => (
                   <td key={id} className="space-y-2 p-3 align-top">
                     {item && (
-                      <Link href={item.href} className={`${btnPrimary} w-full`} target={item.external ? "_blank" : undefined}>
-                        {item.external ? "View listing" : "View deal"} <ArrowUpRight className="size-4" aria-hidden />
-                      </Link>
+                      <a href={item.href} className={`${btnPrimary} w-full`} target={item.external ? "_blank" : undefined} rel={item.external ? "noopener noreferrer" : undefined}>
+                        {item.fromLink ? "Open link" : item.external ? "View listing" : "View deal"} <ArrowUpRight className="size-4" aria-hidden />
+                      </a>
                     )}
                     <button type="button" onClick={() => onRemove(id)} className={`${btnSecondary} w-full`}>
                       Remove<span className="sr-only"> {state.names[id]}</span>
@@ -369,11 +384,17 @@ function CompareSheet({ state, onClose, onRemove }: { state: CompareState; onClo
             </tbody>
           </table>
         </div>
-        <div className="mt-5 flex justify-end">
-          <Link href={compareHref(state)} className="text-sm font-medium text-gray-900 underline underline-offset-4 hover:text-accent">
-            Open full comparison with live prices
-          </Link>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <AddLinkButton trip={state} />
+          {searchIds(state.ids).length > 0 && (
+            <Link href={compareHref(state)} className="text-sm font-medium text-gray-900 underline underline-offset-4 hover:text-accent">
+              Open full comparison with live prices
+            </Link>
+          )}
         </div>
+        {known.some((c) => c.item.fromLink) && (
+          <p className="mt-3 text-xs text-gray-500">Details for pasted links come from that page and what you entered. Check the price on the site before booking.</p>
+        )}
       </div>
     </div>
   );
@@ -388,7 +409,7 @@ export function CompareRemove({ id, name, ids, pickup, ret, location }: { id: st
       className={`${btnSecondary} w-full`}
       onClick={() => {
         const current = read();
-        const next = { ids: ids.filter((x) => x !== id), names: current.names, items: current.items, pickup, ret, location };
+        const next = { ids: [...ids.filter((x) => x !== id), ...current.ids.filter(isLinkId)], names: current.names, items: current.items, pickup, ret, location };
         write(next);
         router.push(compareHref(next));
       }}
@@ -405,21 +426,251 @@ export function CompareSync({ ids, names, pickup, ret, location }: Trip & { name
   useEffect(() => {
     const current = read();
     const nextIds = key ? key.split(",") : [];
-    if (nextIds.length > 0 && (current.ids.join(",") !== key || current.pickup !== pickup || current.ret !== ret)) {
-      write({ ids: nextIds, names: { ...current.names, ...(JSON.parse(namesKey) as Record<string, string>) }, items: current.items, pickup, ret, location });
+    const sameTrip = current.pickup === pickup && current.ret === ret;
+    const links = sameTrip ? current.ids.filter(isLinkId) : [];
+    if (nextIds.length > 0 && (searchIds(current.ids).join(",") !== key || !sameTrip)) {
+      write({ ids: [...nextIds, ...links], names: { ...current.names, ...(JSON.parse(namesKey) as Record<string, string>) }, items: current.items, pickup, ret, location });
     }
   }, [key, namesKey, pickup, ret, location]);
   return null;
 }
 
 /** Shown above results until something is selected, so comparing is discoverable. */
-export function CompareHint() {
+export function CompareHint({ trip }: { trip: { pickup: string; ret: string; location: string } }) {
   const state = useCompare();
   if (state.ids.length > 0) return null;
   return (
-    <p className="flex items-center gap-2.5 rounded-2xl border border-dashed border-accent/40 bg-accent-soft/50 px-4 py-3 text-sm text-gray-700">
-      <Columns3 className="size-4 shrink-0 text-accent" aria-hidden />
-      Tick <span className="font-semibold text-gray-900">Compare</span> on up to {MAX_COMPARE} cars to see them side by side, right here.
-    </p>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-accent/40 bg-accent-soft/50 px-4 py-3 text-sm text-gray-700">
+      <p className="flex items-center gap-2.5">
+        <Columns3 className="size-4 shrink-0 text-accent" aria-hidden />
+        <span>
+          Tick <span className="font-semibold text-gray-900">Compare</span> on up to {MAX_COMPARE} cars to see them side by side, right here.
+        </span>
+      </p>
+      <AddLinkButton trip={{ ids: [], ...trip }} />
+    </div>
+  );
+}
+
+type LinkDetails = {
+  url: string;
+  site: string;
+  title: string;
+  imageUrl: string | null;
+  make: string;
+  model: string;
+  year: number | null;
+  vehicleType: string;
+  seats: number | null;
+  transmission: string;
+  dailyCents: number | null;
+  totalCents: number | null;
+  found: string[];
+};
+
+function tripDays(pickup: string, ret: string): number {
+  const ms = new Date(ret).getTime() - new Date(pickup).getTime();
+  return Number.isFinite(ms) && ms > 0 ? Math.max(1, Math.ceil(ms / 86_400_000)) : 1;
+}
+
+/** "Add a link": paste a listing from another site and compare it with your picks. */
+export function AddLinkButton({ trip, variant = "light" }: { trip: Trip; variant?: "light" | "dark" }) {
+  const state = useCompare();
+  const [open, setOpen] = useState(false);
+  const linkCount = state.ids.filter(isLinkId).length;
+  const disabled = linkCount >= MAX_LINKS;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        disabled={disabled}
+        title={disabled ? `You can add up to ${MAX_LINKS} links` : undefined}
+        className={
+          variant === "dark"
+            ? `${btnSecondary} !border-snow/40 !text-snow hover:!border-snow hover:!bg-transparent`
+            : "inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 hover:border-gray-900 disabled:opacity-50"
+        }
+      >
+        <LinkIcon className="size-4" aria-hidden /> Add a link
+      </button>
+      {open && <AddLinkDialog trip={trip} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function AddLinkDialog({ trip, onClose }: { trip: Trip; onClose: () => void }) {
+  const state = useCompare();
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [details, setDetails] = useState<LinkDetails | null>(null);
+  const urlRef = useRef<HTMLInputElement>(null);
+  const pickup = state.ids.length ? state.pickup : trip.pickup;
+  const ret = state.ids.length ? state.ret : trip.ret;
+  const days = tripDays(pickup, ret);
+
+  useEffect(() => {
+    urlRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  async function lookUp(event: React.FormEvent) {
+    event.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/link-preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
+      const body = (await res.json()) as { data?: LinkDetails; error?: { message: string } };
+      if (body.data) setDetails(body.data);
+      else {
+        setError(body.error?.message ?? "We could not read that link.");
+        // Still let the user type the details by hand.
+        try {
+          const u = new URL(url);
+          setDetails({ url: u.toString(), site: u.hostname.replace(/^www\./, ""), title: "", imageUrl: null, make: "", model: "", year: null, vehicleType: "", seats: null, transmission: "", dailyCents: null, totalCents: null, found: [] });
+        } catch {
+          setDetails(null);
+        }
+      }
+    } catch {
+      setError("We could not reach Carrus. Check your connection.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function add(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!details) return;
+    const f = new FormData(event.currentTarget);
+    const val = (k: string) => String(f.get(k) ?? "").trim();
+    const name = val("name") || details.title || details.site;
+    const dollars = (k: string) => {
+      const n = Number(val(k).replace(/[^0-9.]/g, ""));
+      return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null;
+    };
+    const daily = dollars("daily");
+    const totalInput = dollars("total");
+    if (!daily && !totalInput) {
+      setError("Enter the daily rate or the trip total so it can be compared.");
+      return;
+    }
+    const total = totalInput ?? (daily as number) * days;
+    const id = `link:${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    const snapshot: CompareSnapshot = {
+      name,
+      photoUrl: details.imageUrl,
+      year: Number(val("year")) || details.year || 0,
+      type: val("type") || details.vehicleType || "—",
+      seats: Number(val("seats")) || details.seats || 0,
+      transmission: details.transmission || "—",
+      exact: false,
+      demo: false,
+      offeredBy: details.site,
+      distanceMiles: null,
+      dailyCents: daily ?? Math.round(total / days),
+      totalCents: total,
+      days,
+      lines: [{ code: "link_total", label: totalInput ? "Total from the listing" : `${days} day${days === 1 ? "" : "s"} × daily rate (fees not included)`, cents: total }],
+      href: details.url,
+      external: true,
+      fromLink: true,
+      estimate: !totalInput,
+    };
+    const sameTrip = state.ids.length === 0 || (state.pickup === pickup && state.ret === ret);
+    const base = sameTrip ? state : { ...state, ids: [], names: {}, items: {} };
+    write({
+      ids: [...base.ids, id],
+      names: { ...base.names, [id]: name },
+      items: { ...base.items, [id]: snapshot },
+      pickup,
+      ret,
+      location: base.location || trip.location,
+    });
+    onClose();
+  }
+
+  const has = (k: string) => details?.found.includes(k);
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center text-gray-900 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="add-link-title">
+      <div aria-hidden onClick={onClose} className="page-enter absolute inset-0 bg-black/45 backdrop-blur-[2px]" />
+      <div className="sheet-in relative max-h-[92vh] w-full max-w-lg overflow-auto rounded-t-3xl bg-surface p-6 shadow-[var(--shadow-soft)] sm:rounded-3xl" data-testid="add-link-dialog">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="add-link-title" className="text-2xl">Compare a listing from another site</h2>
+            <p className="mt-1 text-sm text-gray-500">Paste a link. We read the page&apos;s public details; you can fix anything we miss.</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full p-2 text-gray-700 hover:bg-gray-100" aria-label="Close">
+            <X className="size-5" aria-hidden />
+          </button>
+        </div>
+
+        <form onSubmit={lookUp} className="mt-5 flex gap-2">
+          <label htmlFor="link-url" className="sr-only">Listing link</label>
+          <input ref={urlRef} id="link-url" type="url" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className={`${inputCls} flex-1`} />
+          <button type="submit" disabled={loading || !url} className={btnPrimary}>
+            {loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null} {loading ? "Reading…" : "Look up"}
+          </button>
+        </form>
+        {error && <div className="mt-3"><Notice tone="warning">{error}</Notice></div>}
+
+        {details && (
+          <form onSubmit={add} className="page-enter mt-5 space-y-4" key={details.url}>
+            <div className="flex gap-4">
+              {details.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={details.imageUrl} alt="" referrerPolicy="no-referrer" className="aspect-[4/3] w-28 shrink-0 rounded-xl object-cover" />
+              ) : (
+                <div className="flex aspect-[4/3] w-28 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent"><LinkIcon className="size-6" aria-hidden /></div>
+              )}
+              <div className="min-w-0 text-sm">
+                <p className="font-semibold text-gray-900">{details.site}</p>
+                <p className="truncate text-gray-500">{details.url}</p>
+                <p className="mt-1 text-xs text-gray-500">{details.found.length ? `Found: ${details.found.join(", ")}` : "No details found on the page; please fill them in."}</p>
+              </div>
+            </div>
+            <label className="block text-sm text-gray-700">
+              Car name
+              <input name="name" defaultValue={[details.make, details.model].filter(Boolean).join(" ") || details.title} required maxLength={80} className={`${inputCls} mt-1`} />
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              <label className="text-sm text-gray-700">Year<input name="year" inputMode="numeric" defaultValue={details.year ?? ""} className={`${inputCls} mt-1`} /></label>
+              <label className="text-sm text-gray-700">Type<input name="type" defaultValue={details.vehicleType} placeholder="SUV" className={`${inputCls} mt-1`} /></label>
+              <label className="text-sm text-gray-700">Seats<input name="seats" inputMode="numeric" defaultValue={details.seats ?? ""} className={`${inputCls} mt-1`} /></label>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-sm text-gray-700">
+                Daily rate ($){has("dailyRate") && <span className="ml-1 text-xs text-accent">from page</span>}
+                <input name="daily" inputMode="decimal" defaultValue={details.dailyCents ? (details.dailyCents / 100).toFixed(2) : ""} className={`${inputCls} mt-1`} />
+              </label>
+              <label className="text-sm text-gray-700">
+                Trip total ($){has("total") && <span className="ml-1 text-xs text-accent">from page</span>}
+                <input name="total" inputMode="decimal" defaultValue={details.totalCents ? (details.totalCents / 100).toFixed(2) : ""} placeholder={`or daily × ${days}`} className={`${inputCls} mt-1`} />
+              </label>
+            </div>
+            <p className="text-xs text-gray-500">Your trip is {days} day{days === 1 ? "" : "s"}. Without a total we estimate daily rate × days, before fees.</p>
+            <button type="submit" className={`${btnPrimary} w-full`}>Add to comparison</button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** On the full compare page: pasted links stay in this browser, so point to the in-page view. */
+export function CompareLinksNote({ searchHref }: { searchHref: string }) {
+  const state = useCompare();
+  const links = state.ids.filter(isLinkId);
+  if (links.length === 0) return null;
+  return (
+    <div className="mt-4">
+      <Notice tone="info">
+        You also pasted {links.length} link{links.length === 1 ? "" : "s"} ({links.map((id) => state.names[id]).filter(Boolean).join(", ")}). Pasted links are compared on the search page:{" "}
+        <Link href={searchHref} className="font-medium underline underline-offset-4">open search</Link> and choose “Compare here”.
+      </Notice>
+    </div>
   );
 }

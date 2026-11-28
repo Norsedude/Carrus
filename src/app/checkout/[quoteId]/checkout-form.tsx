@@ -11,12 +11,14 @@ export function CheckoutForm({
   amountLabel,
   backHref,
   guest = false,
+  requestMode = false,
 }: {
   quoteId: string;
   initial: CheckoutState;
   amountLabel: string;
   backHref: string;
   guest?: boolean;
+  requestMode?: boolean;
 }) {
   const [state, action, pending] = useActionState(checkoutAction, initial);
   const e = state.fieldErrors;
@@ -86,7 +88,7 @@ export function CheckoutForm({
 
       <div className="flex flex-wrap gap-2">
         <button type="submit" disabled={pending} className={btnPrimary}>
-          {pending ? "Processing…" : `Pay ${amountLabel} and reserve`}
+          {pending ? "Processing…" : `Pay ${amountLabel} and ${requestMode ? "request" : "reserve"}`}
         </button>
         <Link href={backHref} className={btnSecondary}>Cancel</Link>
       </div>

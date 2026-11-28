@@ -157,6 +157,9 @@ html {
 }
 
 body {
+  /* Safety net: decorative effects can never cause sideways scrolling on
+     phones. "clip" (not "hidden") keeps sticky headers working. */
+  overflow-x: clip;
   background: var(--c-surface);
   color: var(--g-800);
   line-height: 1.6;
@@ -241,7 +244,7 @@ input[type="range"] {
   to { opacity: 1; }
 }
 .page-enter {
-  animation: page-in 550ms var(--ease-soft) backwards;
+  animation: page-in 320ms var(--ease-soft) backwards;
 }
 
 /* Bottom sheet / dialog entrance. */
@@ -250,14 +253,14 @@ input[type="range"] {
   to { opacity: 1; transform: none; }
 }
 .sheet-in {
-  animation: sheet-in 600ms var(--ease-soft) backwards;
+  animation: sheet-in 420ms var(--ease-soft) backwards;
 }
 
 /* Scroll reveals (components/reveal.tsx toggles data-shown). */
 .js-reveal .reveal {
   opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 900ms var(--ease-soft), transform 900ms var(--ease-soft);
+  transform: translateY(16px);
+  transition: opacity 650ms var(--ease-soft), transform 650ms var(--ease-soft);
   transition-delay: var(--reveal-delay, 0ms);
 }
 .reveal[data-shown="true"] {
@@ -271,7 +274,7 @@ input[type="range"] {
   to { clip-path: inset(0 0 0 0); }
 }
 .clip-reveal {
-  animation: clip-reveal 1100ms var(--ease-luxe) both;
+  animation: clip-reveal 750ms var(--ease-luxe) both;
 }
 
 /* Photo treatment: slightly muted at rest, full color + gentle zoom on hover. */

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { startBookingAction } from "@/app/actions/booking";
 import { startExternalDemoAction } from "@/app/actions/external-demo";
 import { VehicleImage } from "@/components/brand";
-import { CompareRemove, CompareSync } from "@/components/compare";
+import { CompareLinksNote, CompareRemove, CompareSync } from "@/components/compare";
 import { EmptySearchArt } from "@/components/illustrations";
 import { Badge, Notice, PageShell, btnPrimary, btnSecondary, cardCls } from "@/components/ui";
 import { vehicleHref, vehicleName } from "@/components/vehicle-card";
@@ -111,6 +111,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       title="Compare vehicles"
       intro={`${formatDateTime(dates.pickupAt, tz)} to ${formatDateTime(dates.returnAt, tz)}${origin ? ` · near ${origin.label}` : ""}`}
     >
+      <CompareLinksNote searchHref={searchHref} />
       <CompareSync ids={shownIds} names={Object.fromEntries(columns.map((c) => [c.id, `${c.listing.make} ${c.listing.model}`]))} pickup={pickup} ret={ret} location={location} />
       <div key={self} className="page-enter">
       <div className="space-y-3">
@@ -141,7 +142,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
                 return (
                   <th key={c.id} scope="col" className="group border-l hairline bg-white p-4 text-left align-top" data-testid="compare-column" data-code={c.listing.publicCode}>
                     <VehicleImage photoUrl={c.listing.photoUrl} name={name} type={c.listing.vehicleType} color={c.listing.color} className="photo-luxe mb-3 aspect-[3/2] w-full max-w-60 rounded-xl" sizes="15rem" />
-                    <Link href={href} className="text-lg font-semibold text-gray-900 underline-offset-4 hover:underline">
+                    <Link href={href} className="inline-block py-1 text-lg font-semibold text-gray-900 underline-offset-4 hover:underline">
                       {name}
                     </Link>
                     <p className="mt-2 flex flex-wrap gap-1.5">

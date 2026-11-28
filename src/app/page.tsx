@@ -66,7 +66,9 @@ export default async function HomePage() {
     <main className="flex-1">
       {/* Hero: one headline, one sentence, one search. */}
       <section className="relative mx-auto max-w-6xl px-4 pt-14 sm:px-6 sm:pt-20">
-        <div aria-hidden className="pointer-events-none absolute -top-24 left-1/4 -z-10 h-80 w-[36rem] rounded-full bg-accent-soft opacity-80 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-80 overflow-hidden">
+          <div className="mx-auto h-full w-[min(36rem,90%)] rounded-full bg-accent-soft opacity-80 blur-3xl" />
+        </div>
         <h1 className="max-w-4xl text-[clamp(3rem,7.5vw,6rem)] leading-[0.98] tracking-[-0.035em]">Find your next drive.</h1>
         <p className="mt-5 max-w-md text-lg text-gray-600">Exact cars. <span className="text-accent">Real totals.</span> No surprises.</p>
 
@@ -101,7 +103,7 @@ export default async function HomePage() {
           <ul className="mt-12 grid gap-6 md:grid-cols-3">
             {STEPS.map(({ art: Art, title, body }, i) => (
               <Reveal as="li" key={title} delay={i * 120} className="group list-none text-center">
-                <div className="lift mx-auto flex aspect-[4/3] items-center justify-center rounded-3xl bg-accent-soft p-8 transition-colors duration-500 group-hover:bg-white">
+                <div className="lift mx-auto flex aspect-[16/9] items-center justify-center rounded-3xl bg-accent-soft p-6 sm:aspect-[4/3] sm:p-8 transition-colors duration-500 group-hover:bg-white">
                   <Art className="h-full w-full text-gray-900 transition-transform duration-700 ease-[var(--ease-luxe)] group-hover:scale-105" />
                 </div>
                 <h3 className="mt-5 text-xl">
@@ -116,9 +118,9 @@ export default async function HomePage() {
 
         {listings.length > 0 && (
           <section aria-labelledby="fleet-row">
-            <div className="flex items-end justify-between gap-4">
-              <h2 id="fleet-row" className="text-4xl sm:text-5xl">Popular in {city}</h2>
-              <Link href={searchHref()} className="group inline-flex shrink-0 items-center gap-2 text-sm font-medium text-gray-900">
+            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+              <h2 id="fleet-row" className="min-w-0 text-4xl sm:text-5xl">Popular in {city}</h2>
+              <Link href={searchHref()} className="group inline-flex shrink-0 items-center gap-2 py-2 text-sm font-medium text-gray-900">
                 View all <ArrowRight className="size-4 transition-transform duration-500 group-hover:translate-x-1" aria-hidden />
               </Link>
             </div>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, CarFront } from "lucide-react";
+import { ArrowUpRight, Bell, CarFront } from "lucide-react";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/brand";
 import { CompareNavLink } from "@/components/compare";
@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme-script";
 import { getSessionUser } from "@/lib/auth/session";
 import { getPreferences } from "@/lib/preferences";
+import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,6 +30,11 @@ async function Header({ theme }: { theme: "light" | "dark" | "system" }) {
   const user = await getSessionUser();
   const isPartner = user?.roles.includes("partner");
   const firstName = (user?.displayName || user?.email || "").replace(/\s*\(.*\)$/, "").split(/[\s@]/)[0];
+  let unread = 0;
+  if (user) {
+    const { count } = await (await createClient()).from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).is("read_at", null);
+    unread = count ?? 0;
+  }
   return (
     <header className="sticky top-0 z-40 border-b hairline bg-surface/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-10 gap-y-3 px-4 py-3 sm:px-6 lg:h-[4.75rem] lg:py-0">
@@ -56,6 +62,20 @@ async function Header({ theme }: { theme: "light" | "dark" | "system" }) {
         </nav>
         <div className="ml-auto flex items-center gap-2.5">
           <ThemeToggle initial={theme} />
+          {user && (
+            <Link
+              href="/inbox"
+              className="relative inline-flex size-10 items-center justify-center rounded-full border border-gray-300 text-gray-900 hover:border-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2"
+              aria-label={unread ? `Inbox, ${unread} unread` : "Inbox"}
+            >
+              <Bell className="size-[1.1rem]" aria-hidden />
+              {unread > 0 && (
+                <span aria-hidden className="absolute -right-0.5 -top-0.5 inline-flex min-w-5 justify-center rounded-full bg-accent px-1 text-[0.65rem] font-bold leading-5 text-accent-contrast">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+            </Link>
+          )}
           <Link
             href="/join-the-fleet"
             className="hidden items-center gap-2 rounded-full border border-gray-900 px-4 py-2 text-[0.9rem] font-medium text-gray-900 hover:bg-brand hover:text-brand-contrast focus-visible:outline-2 focus-visible:outline-offset-2 min-[460px]:inline-flex"
@@ -89,7 +109,7 @@ function Footer() {
     { href: "/#search", label: "Search" },
     { href: "/compare", label: "Compare" },
     { href: "/trips", label: "Trips" },
-    { href: "/account", label: "Account" },
+    { href: "/account", label: "My account" },
     { href: "/join-the-fleet", label: "Join the fleet" },
   ];
   return (

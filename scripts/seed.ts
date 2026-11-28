@@ -64,11 +64,22 @@ async function must<T>(p: PromiseLike<{ data: T; error: { message: string } | nu
 export async function reset() {
   assertSafeTarget();
   const tables = [
+    "notifications", "saved_searches", "external_demo_orders",
     "payments", "booking_attempts", "occupancy", "bookings", "quotes",
     "availability_windows", "vehicle_photos", "vehicles", "partner_applications", "partners",
   ] as const;
-  for (const table of tables) {
-    await must(db.from(table).delete().not("id", "is", null), `clear ${table}`);
+  // A simulated payment from a previous test can still be finishing and insert
+  // a row after its table was cleared; retry the whole pass when that happens.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      for (const table of tables) {
+        await must(db.from(table).delete().not("id", "is", null), `clear ${table}`);
+      }
+      break;
+    } catch (error) {
+      if (attempt >= 5 || !String(error).includes("foreign key")) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
+    }
   }
   await must(db.from("audit_events").delete().gt("id", 0), "clear audit_events");
   const users = await db.auth.admin.listUsers({ perPage: 1000 });

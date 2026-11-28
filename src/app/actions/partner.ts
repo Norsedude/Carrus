@@ -63,6 +63,7 @@ export async function applyToFleetAction(_prev: FormState, form: FormData): Prom
 }
 
 const INTENTS = ["draft", "submit", "save", "pause", "resume", "archive"] as const;
+const MAX_WINDOWS = 12;
 type Intent = (typeof INTENTS)[number];
 
 /** Create or edit a listing as its owner. RLS and the listing trigger enforce ownership and review rules. */
@@ -76,9 +77,16 @@ export async function saveVehicleAction(_prev: FormState, form: FormData): Promi
   const vehicleId = text(form, "vehicleId");
   const intent = (INTENTS as readonly string[]).includes(text(form, "intent")) ? (text(form, "intent") as Intent) : "draft";
   const values: Record<string, string> = {};
-  for (const key of ["make", "model", "year", "color", "vehicleType", "seats", "transmission", "description", "locationId", "dailyRate", "availableFrom", "availableUntil", "bookingMode"]) {
+  for (const key of ["make", "model", "year", "color", "vehicleType", "seats", "transmission", "description", "locationId", "dailyRate", "bookingMode"]) {
     values[key] = text(form, key);
   }
+  // Availability: one or more windows ("availableFrom"/"availableUntil" pairs).
+  const froms = form.getAll("availableFrom").map((v) => String(v).trim());
+  const untils = form.getAll("availableUntil").map((v) => String(v).trim());
+  const pairs = froms.map((f, i) => [f, untils[i] ?? ""] as const).filter(([f, u], i) => i === 0 || f || u);
+  values.availableFrom = pairs[0]?.[0] ?? "";
+  values.availableUntil = pairs[0]?.[1] ?? "";
+  values.windows = JSON.stringify(pairs.slice(1));
 
   const fieldErrors: FormState["fieldErrors"] = {};
   if (!values.make) fieldErrors.make = "Enter the make";
@@ -95,12 +103,20 @@ export async function saveVehicleAction(_prev: FormState, form: FormData): Promi
   if (!values.dailyRate) fieldErrors.dailyRate = "Enter a daily rate";
   else if (rateCents === null || rateCents <= 0) fieldErrors.dailyRate = "Daily rate must be a positive dollar amount";
   const tz = location?.timeZone ?? "America/Los_Angeles";
-  const from = values.availableFrom ? zonedLocalToUtc(values.availableFrom, tz) : null;
-  const until = values.availableUntil ? zonedLocalToUtc(values.availableUntil, tz) : null;
-  if (!from) fieldErrors.availableFrom = "Enter when the vehicle becomes available";
-  if (!until) fieldErrors.availableUntil = "Enter when availability ends";
-  if (from && until && until.getTime() <= from.getTime()) fieldErrors.availableUntil = "Availability must end after it starts";
-  if (Object.keys(fieldErrors).length > 0 || !location || !from || !until || rateCents === null) {
+  const windows: { start: Date; end: Date }[] = [];
+  if (pairs.length > MAX_WINDOWS) fieldErrors.windows = `Add at most ${MAX_WINDOWS} availability windows`;
+  pairs.forEach(([f, u], i) => {
+    const from = f ? zonedLocalToUtc(f, tz) : null;
+    const until = u ? zonedLocalToUtc(u, tz) : null;
+    const fromKey = i === 0 ? "availableFrom" : "windows";
+    const untilKey = i === 0 ? "availableUntil" : "windows";
+    if (!from) fieldErrors[fromKey] ??= i === 0 ? "Enter when the vehicle becomes available" : `Window ${i + 1}: enter a start`;
+    if (!until) fieldErrors[untilKey] ??= i === 0 ? "Enter when availability ends" : `Window ${i + 1}: enter an end`;
+    if (from && until && until.getTime() <= from.getTime()) fieldErrors[untilKey] ??= i === 0 ? "Availability must end after it starts" : `Window ${i + 1}: must end after it starts`;
+    if (from && until && until > from) windows.push({ start: from, end: until });
+  });
+  const bookingMode = values.bookingMode === "request" ? "request" : "instant";
+  if (Object.keys(fieldErrors).length > 0 || !location || windows.length === 0 || rateCents === null) {
     return { tone: "error", message: "Fix the highlighted fields. Nothing was saved.", fieldErrors, values };
   }
 
@@ -118,7 +134,7 @@ export async function saveVehicleAction(_prev: FormState, form: FormData): Promi
     longitude: location.coordinates.lng,
     time_zone: location.timeZone,
     daily_rate_cents: rateCents,
-    booking_mode: "instant",
+    booking_mode: bookingMode,
   };
 
   let id = vehicleId;
@@ -154,11 +170,11 @@ export async function saveVehicleAction(_prev: FormState, form: FormData): Promi
     if (error || !data?.length) return { tone: "error", message: "We could not save this listing. Try again.", fieldErrors: {}, values };
   }
 
-  // One availability window per listing in this version of the form.
+  // Replace the listing's availability windows with the submitted set.
   await supabase.from("availability_windows").delete().eq("vehicle_id", id);
   const { error: windowError } = await supabase
     .from("availability_windows")
-    .insert({ vehicle_id: id, start_at: from.toISOString(), end_at: until.toISOString() });
+    .insert(windows.map((w) => ({ vehicle_id: id, start_at: w.start.toISOString(), end_at: w.end.toISOString() })));
   if (windowError) return { tone: "error", message: "The listing was saved, but its availability could not be saved. Try again.", fieldErrors: {}, values };
 
   revalidatePath("/partner");

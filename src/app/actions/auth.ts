@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSessionUser, safeReturnPath } from "@/lib/auth/session";
 import { serverEnv } from "@/lib/env";
+import { RATE_LIMITED_MESSAGE, allowRequest } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 export type FormState = {
@@ -33,6 +34,7 @@ export async function loginAction(_prev: FormState, form: FormData): Promise<For
     password: String(form.get("password") ?? ""),
   });
   if (!parsed.success) return { fieldErrors: errorsOf(parsed.error), values };
+  if (!(await allowRequest("login", values.email ?? ""))) return { tone: "error", message: RATE_LIMITED_MESSAGE, fieldErrors: {}, values };
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
@@ -55,6 +57,7 @@ export async function signupAction(_prev: FormState, form: FormData): Promise<Fo
     .object({ displayName: z.string().min(2, "Enter your name").max(80, "Name is too long"), email, password })
     .safeParse({ ...values, password: String(form.get("password") ?? "") });
   if (!parsed.success) return { fieldErrors: errorsOf(parsed.error), values };
+  if (!(await allowRequest("signup", values.email ?? ""))) return { tone: "error", message: RATE_LIMITED_MESSAGE, fieldErrors: {}, values };
   const next = safeReturnPath(text(form, "next"));
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -92,6 +95,7 @@ export async function forgotPasswordAction(_prev: FormState, form: FormData): Pr
   const values = { email: text(form, "email") };
   const parsed = email.safeParse(values.email);
   if (!parsed.success) return { fieldErrors: { email: "Enter a valid email address" }, values };
+  if (!(await allowRequest("passwordReset", values.email ?? ""))) return { tone: "error", message: RATE_LIMITED_MESSAGE, fieldErrors: {}, values };
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(parsed.data, {
     redirectTo: `${serverEnv().APP_BASE_URL}/auth/callback?next=/reset-password`,
