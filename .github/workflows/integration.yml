@@ -1,0 +1,56 @@
+# Database integration tests. GitHub's Ubuntu runners include Docker, so this
+# starts the local Supabase stack, applies every migration in
+# supabase/migrations and runs `npm run test:integration` on each pull request.
+# Team members whose computers cannot run Docker still get these results.
+# Only local, throwaway keys are used; no production secrets are involved.
+name: Integration tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: Start local Supabase (applies all migrations)
+        run: npx supabase start
+
+      - name: Write .env.local from the local stack's keys
+        run: |
+          npx supabase status -o json > /tmp/supabase-status.json
+          node -e '
+            const s = JSON.parse(require("fs").readFileSync("/tmp/supabase-status.json", "utf8"));
+            const pick = (...names) => names.map((n) => s[n]).find(Boolean);
+            const url = pick("API_URL");
+            const publishable = pick("PUBLISHABLE_KEY", "ANON_KEY");
+            const secret = pick("SECRET_KEY", "SERVICE_ROLE_KEY");
+            if (!url || !publishable || !secret) {
+              console.error("Missing values in supabase status. Fields found:", Object.keys(s).join(", "));
+              process.exit(1);
+            }
+            require("fs").writeFileSync(".env.local", [
+              `NEXT_PUBLIC_SUPABASE_URL=${url}`,
+              `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${publishable}`,
+              `SUPABASE_SECRET_KEY=${secret}`,
+              "APP_ENV=test",
+              "PAYMENT_MODE=simulated",
+              "PROVIDER_MODE=native",
+              "TEST_DATABASE_ALLOWLIST=127.0.0.1,localhost",
+              "",
+            ].join("\n"));
+          '
+
+      - run: npm run test:integration
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop --no-backup

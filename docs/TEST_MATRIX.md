@@ -31,7 +31,10 @@ Levels: U = `tests/unit`, I = `tests/integration`, E = `tests/e2e` (real browser
 | TC-PT03a | 30-day rental accepted | Pass | U |
 | TC-PT03b | 31-day rental rejected | Pass | U |
 | TC-PT04 | Declined payment: no booking or charge, availability released | Pass | I, E |
-| TC-PC01–04 | Preparation, pickup, photo rules | Not built | Milestone C |
+| TC-PC01 | Partner marks #1001 ready (both boxes required, owner only, once) | Written, not yet run | I (`tests/integration/inspection.test.ts`). SQL logic also checked in an in-memory Postgres on 2026-11-17 |
+| TC-PC02 | Customer saves #1002 check with three photos; Active; partner sees the same record | Written, not yet run | I |
+| TC-PC03 | Missing interior photo blocked, nothing saved | Pass (logic only); I written, not yet run | U, I |
+| TC-PC04 | notes.pdf and big.jpg refused, nothing stored | Pass (logic only); I written, not yet run | U, I |
 | TC-RA01–04 | Return assessment and fees | Not built | Milestone C |
 | TC-DS01–04 | Disputes | Not built | Milestone C |
 | TC-PR01 | Preconfirmation correct, no booking side effect | Pass | E |

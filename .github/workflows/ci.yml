@@ -1,5 +1,5 @@
-# Lint, typecheck, unit tests and build. Integration and browser tests need a
-# local Supabase stack and are not run here yet (see docs/PROGRESS.md).
+# Lint, typecheck, unit tests and build. Integration tests run in integration.yml;
+# browser (Playwright) tests are not run in CI yet (see docs/PROGRESS.md).
 name: CI
 
 on:
