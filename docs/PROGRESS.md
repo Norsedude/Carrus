@@ -20,7 +20,9 @@ Migration `20261127000001_milestone_b.sql`. All features run against the databas
 
 Fixes found while testing: extra availability rows reused the first row's input id (dates went into the wrong field); the footer "Account" link made the sign-in check pass before sign-in finished; partner cards lost the visible "Verified partner" text; the new e2e test for guest checkout now runs.
 
-Last full check run (2026-11-27): lint clean, typecheck clean, 70 unit tests, 33 integration tests, 18 browser tests (local Supabase), production build. All passed.
+Merged with PR #2 (F6 pickup check) and fixed its review findings: dashboard "out on rental" for ready and active bookings, pickup form keeps input on errors, pickup photos downscaled to fit Vercel's 4.5 MB limit, ownership checked before upload, logged cleanup, looser browser file-type check.
+
+Last full check run (2026-11-27, after merging PR #2): lint clean, typecheck clean, 89 unit tests, 44 integration tests, 19 browser tests (local Supabase), production build, responsive audit at 5 screen sizes. All passed.
 
 ## Earlier status (2026-11-14)
 
