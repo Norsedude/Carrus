@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { downscaleImage } from "@/lib/client-image";
+import { Plus, Trash2 } from "lucide-react";
+import { useActionState, useState } from "react";
 import type { FormState } from "@/app/actions/auth";
+import { deletePhotoAction, makePrimaryPhotoAction, uploadPhotosAction, type PhotoState } from "@/app/actions/listing";
 import { applyToFleetAction, saveVehicleAction } from "@/app/actions/partner";
 import { Field, Notice, btnDanger, btnPrimary, btnSecondary, inputCls } from "@/components/ui";
 
@@ -66,6 +70,13 @@ export function VehicleForm({
   const v = state.values;
   const e = state.fieldErrors;
   const isNew = !vehicleId;
+  const [extra, setExtra] = useState<{ key: number; from: string; until: string }[]>(() => {
+    try {
+      return (JSON.parse(v.windows || "[]") as [string, string][]).map(([from, until], i) => ({ key: i, from, until }));
+    } catch {
+      return [];
+    }
+  });
   return (
     <form action={action} noValidate className="space-y-5">
       {vehicleId && <input type="hidden" name="vehicleId" value={vehicleId} />}
@@ -81,17 +92,45 @@ export function VehicleForm({
         <SelectField label="Pickup location" name="locationId" value={v.locationId} error={e.locationId} options={locations} />
         <Field label="Daily rate ($)" name="dailyRate" inputMode="decimal" defaultValue={v.dailyRate} error={e.dailyRate} hint="Before fees. Customers always see the full itemized total." />
         <div />
-        <Field label="Available from" name="availableFrom" type="datetime-local" defaultValue={v.availableFrom} error={e.availableFrom} />
-        <Field label="Available until" name="availableUntil" type="datetime-local" defaultValue={v.availableUntil} error={e.availableUntil} />
+        <SelectField
+          label="Booking mode"
+          name="bookingMode"
+          value={v.bookingMode || "instant"}
+          options={[
+            { value: "instant", label: "Instant: confirmed at checkout" },
+            { value: "request", label: "Request to book: I approve each booking" },
+          ]}
+        />
       </div>
+
+      <fieldset className="space-y-3 rounded-2xl border hairline p-4">
+        <legend className="px-1 text-sm font-semibold text-gray-900">Availability</legend>
+        <p className="text-xs text-gray-500">Add one window per period the car can be rented. Times are in the pickup location&apos;s time zone.</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Available from" name="availableFrom" type="datetime-local" defaultValue={v.availableFrom} error={e.availableFrom} />
+          <Field label="Available until" name="availableUntil" type="datetime-local" defaultValue={v.availableUntil} error={e.availableUntil} />
+        </div>
+        {extra.map((w, i) => (
+          <div key={w.key} className="grid items-end gap-4 sm:grid-cols-[1fr_1fr_auto]" data-testid="window-row">
+            <Field id={`f-window-${w.key}-from`} label={`Window ${i + 2} from`} name="availableFrom" type="datetime-local" defaultValue={w.from} />
+            <Field id={`f-window-${w.key}-until`} label={`Window ${i + 2} until`} name="availableUntil" type="datetime-local" defaultValue={w.until} />
+            <button type="button" onClick={() => setExtra((rows) => rows.filter((r) => r.key !== w.key))} className={`${btnSecondary} px-3`} aria-label={`Remove window ${i + 2}`}>
+              <Trash2 className="size-4" aria-hidden />
+            </button>
+          </div>
+        ))}
+        {e.windows && <p className="text-sm font-medium text-red-700">{e.windows}</p>}
+        {extra.length < 11 && (
+          <button type="button" onClick={() => setExtra((rows) => [...rows, { key: Date.now(), from: "", until: "" }])} className={`${btnSecondary} text-sm`}>
+            <Plus className="size-4" aria-hidden /> Add another window
+          </button>
+        )}
+      </fieldset>
       <div>
         <label htmlFor="f-description" className="mb-1 block text-sm font-medium text-gray-800">Description</label>
         <textarea id="f-description" name="description" rows={3} defaultValue={v.description} className={inputCls} />
       </div>
-      <Notice>
-        Not built yet: photo upload, multiple availability windows, and request-to-book mode. New listings use instant
-        booking and the flat-fee pricing policy.
-      </Notice>
+      {isNew && <Notice>Save the listing first, then add photos on its edit page. New listings use the flat-fee pricing policy.</Notice>}
       <div className="flex flex-wrap gap-2">
         {isNew || status === "draft" ? (
           <>
@@ -108,5 +147,86 @@ export function VehicleForm({
         <Link href="/partner" className={btnSecondary}>Cancel</Link>
       </div>
     </form>
+  );
+}
+
+/** Upload, choose the cover, and remove listing photos. */
+export function PhotoManager({ vehicleId, photos, max }: { vehicleId: string; photos: { id: string; url: string; isPrimary: boolean }[]; max: number }) {
+  const router = useRouter();
+  const [state, setState] = useState<PhotoState>({});
+  const [pending, setPending] = useState(false);
+
+  async function upload(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const input = event.currentTarget.elements.namedItem("photos") as HTMLInputElement;
+    const files = [...(input.files ?? [])];
+    if (files.length === 0) return setState({ tone: "error", message: "Choose at least one photo." });
+    if (photos.length + files.length > max) return setState({ tone: "error", message: `A listing can have up to ${max} photos. Remove some first.` });
+    const tooBig = files.find((f) => f.size > 10_000_000);
+    if (tooBig) return setState({ tone: "error", message: `${tooBig.name} is larger than 10 MB. Nothing was uploaded.` });
+    setPending(true);
+    let added = 0;
+    for (const file of files) {
+      const blob = await downscaleImage(file);
+      const fd = new FormData();
+      fd.set("vehicleId", vehicleId);
+      fd.append("photos", blob, file.name.replace(/\.[^.]+$/, "") + (blob.type === "image/jpeg" ? ".jpg" : ""));
+      const result = await uploadPhotosAction({}, fd);
+      if (result.tone !== "success") {
+        setState({ tone: "error", message: `${added ? `${added} photo${added === 1 ? "" : "s"} added. ` : ""}${result.message ?? "Upload failed."}` });
+        setPending(false);
+        router.refresh();
+        return;
+      }
+      added += 1;
+    }
+    input.value = "";
+    setState({ tone: "success", message: `${added} photo${added === 1 ? "" : "s"} added.` });
+    setPending(false);
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-4">
+      {state.message && <Notice tone={state.tone === "success" ? "success" : "error"}>{state.message}</Notice>}
+      {photos.length === 0 ? (
+        <p className="text-sm text-gray-600">No photos yet. Listings with photos get more bookings.</p>
+      ) : (
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="photo-list">
+          {photos.map((p) => (
+            <li key={p.id} className="overflow-hidden rounded-xl border hairline bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.url} alt="" className="aspect-[4/3] w-full object-cover" />
+              <div className="flex flex-wrap items-center justify-between gap-1 p-2 text-xs">
+                {p.isPrimary ? (
+                  <span className="rounded-full bg-accent-soft px-2 py-0.5 font-medium text-accent">Cover photo</span>
+                ) : (
+                  <form action={makePrimaryPhotoAction}>
+                    <input type="hidden" name="vehicleId" value={vehicleId} />
+                    <input type="hidden" name="photoId" value={p.id} />
+                    <button type="submit" className="font-medium text-gray-700 underline underline-offset-2 hover:text-gray-900">Make cover</button>
+                  </form>
+                )}
+                <form action={deletePhotoAction}>
+                  <input type="hidden" name="vehicleId" value={vehicleId} />
+                  <input type="hidden" name="photoId" value={p.id} />
+                  <button type="submit" className="font-medium text-red-700 underline underline-offset-2">Remove</button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {photos.length < max && (
+        <form onSubmit={upload} className="flex flex-wrap items-end gap-3">
+          <div className="min-w-0 max-w-full flex-1">
+            <label htmlFor="f-photos" className="mb-1 block text-sm font-medium text-gray-800">Add photos</label>
+            <input id="f-photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple className="block w-full max-w-full text-sm text-gray-700 file:mr-3 file:rounded-full file:border-0 file:bg-brand file:px-4 file:py-2 file:text-sm file:font-medium file:text-brand-contrast" />
+            <p className="mt-1 text-xs text-gray-500">JPG, PNG or WebP, up to 10 MB each, {max} photos per listing.</p>
+          </div>
+          <button type="submit" disabled={pending} className={btnPrimary}>{pending ? "Uploading…" : "Upload"}</button>
+        </form>
+      )}
+    </div>
   );
 }

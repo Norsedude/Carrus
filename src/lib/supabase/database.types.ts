@@ -23,19 +23,6 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "external_demo_orders": {
-                  Row: {
-                    "id": string,"customer_id": string,"provider_key": string,"provider_name": string,"provider_listing_id": string,"source_url": string,"pickup_at": string,"return_at": string,"search_lat": number,"search_lng": number,"search_radius_miles": number,"listing_snapshot": NonNullable<Json>,"total_cents": number,"state": string,"contact_name": string | null,"contact_phone": string | null,"demo_reference": string | null,"expires_at": string,"created_at": string,"confirmed_at": string | null
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "id"?: string,"customer_id": string,"provider_key": string,"provider_name": string,"provider_listing_id": string,"source_url": string,"pickup_at": string,"return_at": string,"search_lat": number,"search_lng": number,"search_radius_miles": number,"listing_snapshot": NonNullable<Json>,"total_cents": number,"state"?: string,"contact_name"?: string | null,"contact_phone"?: string | null,"demo_reference"?: string | null,"expires_at"?: string,"created_at"?: string,"confirmed_at"?: string | null
-                  }
-                  Update: {
-                    "id"?: string,"customer_id"?: string,"provider_key"?: string,"provider_name"?: string,"provider_listing_id"?: string,"source_url"?: string,"pickup_at"?: string,"return_at"?: string,"search_lat"?: number,"search_lng"?: number,"search_radius_miles"?: number,"listing_snapshot"?: NonNullable<Json>,"total_cents"?: number,"state"?: string,"contact_name"?: string | null,"contact_phone"?: string | null,"demo_reference"?: string | null,"expires_at"?: string,"created_at"?: string,"confirmed_at"?: string | null
-                  }
-                  Relationships: []
-                },
             "audit_events": {
                   Row: {
                     "action": string,"actor_id": string | null,"created_at": string,"id": number,"reason": string | null,"target_id": string,"target_type": string
@@ -104,14 +91,14 @@ isOneToOne: false
                   ]
                 },"bookings": {
                   Row: {
-                    "contact_name": string,"contact_phone": string,"created_at": string,"customer_id": string,"id": string,"partner_approved_at": string | null,"partner_id": string,"pickup_at": string,"price_snapshot": NonNullable<Json>,"quote_id": string | null,"ready_at": string | null,"ready_by": string | null,"reference": string,"return_at": string,"state": string,"total_cents": number,"updated_at": string,"vehicle_id": string,"vehicle_snapshot": NonNullable<Json>
+                    "contact_name": string,"contact_phone": string,"created_at": string,"customer_id": string,"decline_reason": string | null,"id": string,"partner_approved_at": string | null,"partner_id": string,"pickup_at": string,"price_snapshot": NonNullable<Json>,"quote_id": string | null,"ready_at": string | null,"ready_by": string | null,"reference": string,"respond_by": string | null,"return_at": string,"state": string,"total_cents": number,"updated_at": string,"vehicle_id": string,"vehicle_snapshot": NonNullable<Json>
                   }
                   ComputedFields: never
                   Insert: {
-                    "contact_name"?: string,"contact_phone"?: string,"created_at"?: string,"customer_id": string,"id"?: string,"partner_approved_at"?: string | null,"partner_id": string,"pickup_at": string,"price_snapshot": NonNullable<Json>,"quote_id"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"reference": string,"return_at": string,"state": string,"total_cents": number,"updated_at"?: string,"vehicle_id": string,"vehicle_snapshot": NonNullable<Json>
+                    "contact_name"?: string,"contact_phone"?: string,"created_at"?: string,"customer_id": string,"decline_reason"?: string | null,"id"?: string,"partner_approved_at"?: string | null,"partner_id": string,"pickup_at": string,"price_snapshot": NonNullable<Json>,"quote_id"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"reference": string,"respond_by"?: string | null,"return_at": string,"state": string,"total_cents": number,"updated_at"?: string,"vehicle_id": string,"vehicle_snapshot": NonNullable<Json>
                   }
                   Update: {
-                    "contact_name"?: string,"contact_phone"?: string,"created_at"?: string,"customer_id"?: string,"id"?: string,"partner_approved_at"?: string | null,"partner_id"?: string,"pickup_at"?: string,"price_snapshot"?: NonNullable<Json>,"quote_id"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"reference"?: string,"return_at"?: string,"state"?: string,"total_cents"?: number,"updated_at"?: string,"vehicle_id"?: string,"vehicle_snapshot"?: NonNullable<Json>
+                    "contact_name"?: string,"contact_phone"?: string,"created_at"?: string,"customer_id"?: string,"decline_reason"?: string | null,"id"?: string,"partner_approved_at"?: string | null,"partner_id"?: string,"pickup_at"?: string,"price_snapshot"?: NonNullable<Json>,"quote_id"?: string | null,"ready_at"?: string | null,"ready_by"?: string | null,"reference"?: string,"respond_by"?: string | null,"return_at"?: string,"state"?: string,"total_cents"?: number,"updated_at"?: string,"vehicle_id"?: string,"vehicle_snapshot"?: NonNullable<Json>
                   }
                   Relationships: [
                     {
@@ -133,6 +120,20 @@ isOneToOne: false
       referencedRelation: "vehicles"
       referencedColumns: ["id"]
     }
+                  ]
+                },"external_demo_orders": {
+                  Row: {
+                    "confirmed_at": string | null,"contact_name": string | null,"contact_phone": string | null,"created_at": string,"customer_id": string,"demo_reference": string | null,"expires_at": string,"id": string,"listing_snapshot": NonNullable<Json>,"pickup_at": string,"provider_key": string,"provider_listing_id": string,"provider_name": string,"return_at": string,"search_lat": number,"search_lng": number,"search_radius_miles": number,"source_url": string,"state": string,"total_cents": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "confirmed_at"?: string | null,"contact_name"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"customer_id": string,"demo_reference"?: string | null,"expires_at"?: string,"id"?: string,"listing_snapshot": NonNullable<Json>,"pickup_at": string,"provider_key": string,"provider_listing_id": string,"provider_name": string,"return_at": string,"search_lat": number,"search_lng": number,"search_radius_miles": number,"source_url": string,"state"?: string,"total_cents": number
+                  }
+                  Update: {
+                    "confirmed_at"?: string | null,"contact_name"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"customer_id"?: string,"demo_reference"?: string | null,"expires_at"?: string,"id"?: string,"listing_snapshot"?: NonNullable<Json>,"pickup_at"?: string,"provider_key"?: string,"provider_listing_id"?: string,"provider_name"?: string,"return_at"?: string,"search_lat"?: number,"search_lng"?: number,"search_radius_miles"?: number,"source_url"?: string,"state"?: string,"total_cents"?: number
+                  }
+                  Relationships: [
+                    
                   ]
                 },"inspection_photos": {
                   Row: {
@@ -173,6 +174,20 @@ isOneToOne: false
       referencedRelation: "bookings"
       referencedColumns: ["id"]
     }
+                  ]
+                },"notifications": {
+                  Row: {
+                    "body": string,"created_at": string,"email_status": string,"id": string,"kind": string,"link": string | null,"read_at": string | null,"title": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body"?: string,"created_at"?: string,"email_status"?: string,"id"?: string,"kind": string,"link"?: string | null,"read_at"?: string | null,"title": string,"user_id": string
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"email_status"?: string,"id"?: string,"kind"?: string,"link"?: string | null,"read_at"?: string | null,"title"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 },"occupancy": {
                   Row: {
@@ -322,6 +337,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"saved_searches": {
+                  Row: {
+                    "created_at": string,"id": string,"name": string,"query": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"name": string,"query": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"name"?: string,"query"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"user_roles": {
                   Row: {
                     "granted_at": string,"role": string,"user_id": string
@@ -400,14 +429,23 @@ isOneToOne: false
 "begin_booking":
 { Args: { "_contact_name": string,"_contact_phone": string,"_hash": string,"_hold_seconds"?: number,"_key": string,"_quote": string,"_user": string }; Returns: Json
                            },
+"expire_pending_requests":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "finalize_booking":
 { Args: { "_attempt": string,"_detail"?: string,"_payment_ok": boolean,"_provider_ref": string }; Returns: Json
+                           },
+"hit_rate_limit":
+{ Args: { "_bucket": string,"_limit": number,"_window_seconds": number }; Returns: boolean
                            },
 "mark_ready_for_pickup":
 { Args: { "_booking": string,"_fuel_full": boolean,"_vehicle_clean": boolean }; Returns: undefined
                            },
 "record_pickup_inspection":
 { Args: { "_actor": string,"_booking": string,"_cleanliness": string,"_exterior_damage": string,"_fuel_level": string,"_photos": Json }; Returns: string
+                           },
+"respond_to_booking":
+{ Args: { "_approve": boolean,"_booking": string,"_reason"?: string }; Returns: Json
                            },
 "review_listing":
 { Args: { "_approve": boolean,"_reason": string,"_vehicle": string }; Returns: undefined
@@ -417,6 +455,11 @@ isOneToOne: false
                            },
 "submit_partner_application":
 { Args: { "_contact_email": string,"_contact_phone": string,"_display_name": string,"_fleet_size": number,"_kind": string,"_notes": string }; Returns: string
+                           },
+"vehicle_busy_periods":
+{ Args: { "_from": string,"_to": string,"_vehicle": string }; Returns: {
+              "end_at": string,"start_at": string
+            }[]
                            }
           }
           Enums: {

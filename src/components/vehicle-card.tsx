@@ -82,13 +82,14 @@ export function VehicleCard({ listing, trip }: { listing: VehicleListing; trip: 
             <span className="inline-flex items-center gap-1.5">
               {listing.partner.verified ? <BadgeCheck className="size-4 text-accent" aria-hidden /> : <Building2 className="size-4" aria-hidden />}
               {listing.partner.displayName}
-              {listing.partner.verified && <span className="sr-only">, verified partner</span>}
+              {listing.partner.verified && " · Verified partner"}
             </span>
           )}
         </p>
         <p className="flex flex-wrap gap-1.5 pt-1">
           {listing.cancellationPolicy === "free_24h" && <Badge tone="green">Free cancellation</Badge>}
           {listing.exactMatch ? <Badge tone="blue">Exact vehicle</Badge> : <Badge tone="amber">Or similar</Badge>}
+          {listing.bookingMode === "request" && <Badge tone="neutral">Host approval</Badge>}
           {listing.isMockSource && <Badge tone="amber">Demo</Badge>}
         </p>
         {!native && listing.sourceUrl && (

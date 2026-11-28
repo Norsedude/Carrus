@@ -8,6 +8,8 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth/session";
 import { readGuestAccess } from "@/lib/guest-access";
 import { formatCents } from "@/lib/money";
+import { formatDateTime } from "@/lib/time";
+import { expirePendingRequests } from "@/server/booking/requests";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { VehicleSnapshot } from "@/server/booking/service";
 import type { PriceBreakdown } from "@/server/pricing/pricing";
@@ -22,6 +24,7 @@ export const metadata: Metadata = { title: "Reservation confirmed" };
 export default async function ConfirmationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
+  await expirePendingRequests();
   const user = await getSessionUser();
   // Guests may open only the confirmations this browser created (signed cookie).
   const guest = !user && (await readGuestAccess()).bookings.includes(id);
@@ -32,15 +35,35 @@ export default async function ConfirmationPage({ params }: { params: Promise<{ i
   if (!booking) notFound();
   const { data: payments } = await db.from("payments").select("state, amount_cents, provider_ref").eq("booking_id", booking.id);
   const paid = payments?.find((p) => p.state === "succeeded");
+  const refunded = payments?.find((p) => p.state === "refunded");
+  const state = booking.state;
+  const title =
+    state === "pending_partner" ? "Request sent to the host" : state === "declined" ? "The host declined this request" : state === "expired" ? "This request expired" : "Your reservation is confirmed";
+  const tz = (booking.vehicle_snapshot as unknown as VehicleSnapshot).timeZone;
 
   return (
-    <PageShell title="Your reservation is confirmed">
+    <PageShell title={title}>
       <div className="space-y-4">
+        {state === "pending_partner" && (
+          <Notice tone="info" title={`Request ${booking.reference}`}>
+            <span data-testid="booking-reference" className="sr-only">{booking.reference}</span>
+            The host will accept or decline by {booking.respond_by ? formatDateTime(booking.respond_by, tz) : "within 24 hours"}. If they decline or do not answer, the simulated payment is refunded automatically.
+          </Notice>
+        )}
+        {(state === "declined" || state === "expired") && (
+          <Notice tone="warning" title={`Request ${booking.reference}`}>
+            <span data-testid="booking-reference" className="sr-only">{booking.reference}</span>
+            {state === "declined" ? `Declined${booking.decline_reason ? `: ${booking.decline_reason}` : "."}` : "The host did not answer in time."} No reservation was made
+            {refunded ? ` and the simulated payment of ${formatCents(refunded.amount_cents)} was refunded.` : "."}
+          </Notice>
+        )}
+        {!["pending_partner", "declined", "expired"].includes(state) && (
         <Notice tone="success" title={`Reservation ${booking.reference}`}>
           <span data-testid="booking-reference" className="sr-only">{booking.reference}</span>
           This exact vehicle is reserved for you. Keep this reference for pickup.
           {guest && " It is saved to the email you entered; sign up or reset your password with that email to see it under Trips."}
         </Notice>
+        )}
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
           <div className={`${cardCls} space-y-4 p-5`}>
             <p className="flex items-center gap-2 text-sm text-gray-700">Status: <StateBadge state={booking.state} /></p>

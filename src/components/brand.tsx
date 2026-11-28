@@ -39,6 +39,17 @@ export function VehicleArt({ type, color, className = "" }: { type: string; colo
   );
 }
 
+/** Local files and hosted Supabase listing photos go through next/image resizing; other remote images load as-is. */
+function canOptimize(url: string): boolean {
+  if (url.startsWith("/")) return true;
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && u.hostname.endsWith(".supabase.co") && u.pathname.startsWith("/storage/v1/object/public/vehicle-photos/");
+  } catch {
+    return false;
+  }
+}
+
 /**
  * A listing's primary photo, cropped to the frame given by `className`
  * (which should set width and aspect ratio). Falls back to the illustration.
@@ -63,7 +74,7 @@ export function VehicleImage({
   return (
     <div className={`relative shrink-0 overflow-hidden rounded-lg bg-gray-100 ${className}`}>
       {photoUrl ? (
-        <Image src={photoUrl} alt={`${name}${color ? `, ${color.toLowerCase()}` : ""}`} fill sizes={sizes} priority={priority} unoptimized={photoUrl.startsWith("https://")} className="object-cover" />
+        <Image src={photoUrl} alt={`${name}${color ? `, ${color.toLowerCase()}` : ""}`} fill sizes={sizes} priority={priority} unoptimized={!canOptimize(photoUrl)} className="object-cover" />
       ) : (
         <VehicleArt type={type} color={color} className="absolute inset-0 size-full" />
       )}

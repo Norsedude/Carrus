@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth/session";
 import { grantGuestAccess } from "@/lib/guest-access";
+import { RATE_LIMITED_MESSAGE, allowRequest } from "@/lib/rate-limit";
 import { getNow } from "@/lib/clock";
 import { createAdminClient } from "@/lib/supabase/server";
 import { guestUserId } from "@/server/booking/guest";
@@ -98,6 +99,9 @@ export async function checkoutAction(prev: CheckoutState, form: FormData): Promi
     return { idempotencyKey, fieldErrors, values, tone: "error", message: "Fix the highlighted fields. You have not been charged." };
   }
 
+  if (!user && !(await allowRequest("guestCheckout"))) {
+    return { idempotencyKey, fieldErrors: {}, values, tone: "error", message: `${RATE_LIMITED_MESSAGE} You have not been charged.` };
+  }
   const admin = createAdminClient();
   let userId = user?.id;
   if (!userId) {

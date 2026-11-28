@@ -7,12 +7,14 @@ import { formatCents } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/time";
 import type { VehicleSnapshot } from "@/server/booking/service";
+import { expirePendingRequests } from "@/server/booking/requests";
 import type { VehicleListing } from "@/server/search/types";
 
 export const metadata: Metadata = { title: "My trips" };
 
 export default async function TripsPage() {
   const user = await requireUser("/trips");
+  await expirePendingRequests();
   const db = await createClient();
   const [{ data }, { data: demoData }] = await Promise.all([
     db.from("bookings").select("id, reference, state, pickup_at, return_at, total_cents, vehicle_snapshot").eq("customer_id", user.id).order("pickup_at", { ascending: true }),

@@ -5,18 +5,29 @@ import { PrepareVehicleForm } from "@/components/inspection-forms";
 import { InspectionRecord } from "@/components/inspection-record";
 import { PriceBreakdownView } from "@/components/price";
 import { TripSummary } from "@/components/trip-summary";
-import { Notice, PageShell, StateBadge, cardCls, linkCls } from "@/components/ui";
+import { respondToRequestAction } from "@/app/actions/requests";
+import { Notice, PageShell, StateBadge, btnPrimary, btnSecondary, cardCls, inputCls, linkCls } from "@/components/ui";
 import { requireVerifiedPartner } from "@/lib/auth/partner";
 import { createAdminClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/time";
 import { getInspections } from "@/server/inspections/service";
 import type { VehicleSnapshot } from "@/server/booking/service";
 import type { PriceBreakdown } from "@/server/pricing/pricing";
+import { expirePendingRequests } from "@/server/booking/requests";
+
+const RESULTS: Record<string, { tone: "success" | "warning" | "error"; text: string }> = {
+  confirmed: { tone: "success", text: "Request approved. The customer has been notified." },
+  declined: { tone: "success", text: "Request declined. The customer was notified and refunded." },
+  expired: { tone: "warning", text: "This request had already expired, so it could not be approved." },
+  error: { tone: "error", text: "That did not work. Refresh and try again." },
+};
 
 export const metadata: Metadata = { title: "Reservation" };
 
-export default async function PartnerReservationPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PartnerReservationPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ result?: string }> }) {
   const { id } = await params;
+  const { result } = await searchParams;
+  await expirePendingRequests();
   const { partner, db } = await requireVerifiedPartner(`/partner/reservations/${id}`);
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const { data: b } = await db.from("bookings").select("*").eq("id", id).eq("partner_id", partner.id).maybeSingle();
@@ -41,6 +52,30 @@ export default async function PartnerReservationPage({ params }: { params: Promi
               {b.contact_phone ? ` · ${b.contact_phone}` : ""}
             </p>
           </div>
+          {result && RESULTS[result] && <Notice tone={RESULTS[result].tone}><span data-testid="respond-result">{RESULTS[result].text}</span></Notice>}
+          {b.state === "pending_partner" && (
+            <section className={`${cardCls} space-y-4 p-5`} aria-labelledby="respond-heading">
+              <h2 id="respond-heading" className="text-xl">Respond to this request</h2>
+              <p className="text-sm text-gray-600">
+                Answer by {b.respond_by ? formatDateTime(b.respond_by, vehicle.timeZone) : "the deadline"}. If you do not answer, the request expires and the customer is refunded.
+              </p>
+              <div className="flex flex-wrap items-start gap-3">
+                <form action={respondToRequestAction}>
+                  <input type="hidden" name="bookingId" value={b.id} />
+                  <input type="hidden" name="decision" value="approve" />
+                  <button type="submit" className={btnPrimary}>Approve request</button>
+                </form>
+                <form action={respondToRequestAction} className="flex min-w-64 flex-1 flex-wrap gap-2">
+                  <input type="hidden" name="bookingId" value={b.id} />
+                  <input type="hidden" name="decision" value="decline" />
+                  <label htmlFor="decline-reason" className="sr-only">Reason (optional)</label>
+                  <input id="decline-reason" name="reason" maxLength={300} placeholder="Reason (optional)" className={`${inputCls} flex-1`} />
+                  <button type="submit" className={btnSecondary}>Decline</button>
+                </form>
+              </div>
+            </section>
+          )}
+          {b.state === "declined" && b.decline_reason && <Notice tone="info">Declined: {b.decline_reason}</Notice>}
           {b.state === "confirmed" && (
             <details className={`${cardCls} p-5`}>
               <summary className="cursor-pointer text-base font-semibold text-brand">Prepare vehicle</summary>
@@ -58,10 +93,6 @@ export default async function PartnerReservationPage({ params }: { params: Promi
           {inspections.map((inspection) => (
             <InspectionRecord key={inspection.stage} inspection={inspection} timeZone={vehicle.timeZone} />
           ))}
-          <Notice title="Not built yet">
-            This vehicle uses instant booking, so there is nothing to approve. Approving or declining requests and the
-            return inspection are planned for the next milestone.
-          </Notice>
         </div>
         <aside className={`${cardCls} h-fit p-5`}>
           <PriceBreakdownView price={b.price_snapshot as unknown as PriceBreakdown} heading="Price charged to the customer" />

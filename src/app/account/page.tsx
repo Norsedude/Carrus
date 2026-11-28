@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowUpRight, KeyRound, LogOut, Palette, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowUpRight, Bookmark, KeyRound, LogOut, Palette, ShieldCheck, Trash2, UserRound } from "lucide-react";
+import { deleteSavedSearchAction } from "@/app/actions/account";
 import { logoutAction } from "@/app/actions/auth";
 import { ProfileForm } from "@/components/auth-forms";
 import { WheelArt } from "@/components/illustrations";
@@ -18,6 +19,7 @@ export const metadata: Metadata = { title: "Account" };
 const SECTIONS = [
   { id: "profile", label: "Profile", icon: UserRound },
   { id: "preferences", label: "Preferences", icon: Palette },
+  { id: "saved", label: "Saved searches", icon: Bookmark },
   { id: "access", label: "Access", icon: ShieldCheck },
   { id: "security", label: "Security", icon: KeyRound },
 ];
@@ -35,11 +37,12 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   const user = await requireUser("/account");
   const { notice, denied } = await searchParams;
   const db = await createClient();
-  const [{ data: profile }, { data: partner }, { data: bookings }, prefs] = await Promise.all([
+  const [{ data: profile }, { data: partner }, { data: bookings }, prefs, { data: savedSearches }] = await Promise.all([
     db.from("profiles").select("display_name, phone").eq("id", user.id).maybeSingle(),
     db.from("partners").select("display_name, verification_status").eq("owner_user_id", user.id).maybeSingle(),
     db.from("bookings").select("return_at, state").eq("customer_id", user.id),
     getPreferences(),
+    db.from("saved_searches").select("id, name, query, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
   ]);
   const name = (profile?.display_name || user.email || "").replace(/ \((CUSTOMER|PARTNER)-\d+\)$/, "");
   const initials = name.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "C";
@@ -87,7 +90,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
       </section>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[13rem_1fr]">
-        <nav aria-label="Account sections" className="lg:sticky lg:top-24 lg:self-start">
+        <nav aria-label="Account sections" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <ul className="flex gap-2 overflow-x-auto lg:flex-col lg:gap-1">
             {SECTIONS.map(({ id, label, icon: Icon }) => (
               <li key={id}>
@@ -110,10 +113,31 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
             <PreferencesForm initial={prefs} locations={KNOWN_LOCATIONS.map((l) => l.label)} />
           </Section>
 
+          <Section id="saved" title="Saved searches">
+            {(savedSearches ?? []).length === 0 ? (
+              <p className="text-sm text-gray-600">Run a search and choose “Save search” to keep it here.</p>
+            ) : (
+              <ul className="space-y-2" data-testid="saved-searches">
+                {(savedSearches ?? []).map((s) => (
+                  <li key={s.id} className="flex items-center justify-between gap-3 rounded-2xl border hairline px-5 py-3">
+                    <Link href={`/search?${s.query}`} className="min-w-0 flex-1 truncate font-medium text-gray-900 underline-offset-4 hover:underline">{s.name}</Link>
+                    <form action={deleteSavedSearchAction}>
+                      <input type="hidden" name="id" value={s.id} />
+                      <button type="submit" className="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-red-700" aria-label={`Delete saved search ${s.name}`}>
+                        <Trash2 className="size-4" aria-hidden />
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+
           <Section id="access" title="Access">
             <ul className="grid gap-3 sm:grid-cols-2">
               {[
                 { href: "/trips", label: "My trips", show: true },
+                { href: "/inbox", label: "Inbox", show: true },
                 partner
                   ? { href: partner.verification_status === "verified" ? "/partner" : "/join-the-fleet", label: `${partner.display_name} (${partner.verification_status})`, show: true }
                   : { href: "/join-the-fleet", label: "Become a rental partner", show: true },

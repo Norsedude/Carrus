@@ -6,6 +6,8 @@ import { getNow } from "@/lib/clock";
 import { formatCents } from "@/lib/money";
 import { formatDateTime } from "@/lib/time";
 import type { VehicleSnapshot } from "@/server/booking/service";
+import { expirePendingRequests } from "@/server/booking/requests";
+import { isOutOnRental } from "@/server/booking/out-on-rental";
 
 export const metadata: Metadata = { title: "Partner dashboard" };
 
@@ -21,6 +23,7 @@ const SAVED: Record<string, string> = {
 export default async function PartnerDashboardPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
   const { saved } = await searchParams;
   const { partner, db } = await requireVerifiedPartner("/partner");
+  await expirePendingRequests();
   const [{ data: vehicleRows }, { data: bookingRows }] = await Promise.all([
     db.from("vehicles").select("id, public_code, make, model, year, daily_rate_cents, lifecycle_status, location_label").eq("partner_id", partner.id).order("public_code"),
     db.from("bookings").select("id, reference, state, pickup_at, return_at, total_cents, vehicle_id, vehicle_snapshot, contact_name").eq("partner_id", partner.id).order("pickup_at"),
@@ -28,18 +31,27 @@ export default async function PartnerDashboardPage({ searchParams }: { searchPar
   const vehicles = vehicleRows ?? [];
   const bookings = bookingRows ?? [];
   const now = getNow().getTime();
-  const out = new Set(
-    bookings
-      .filter((b) => b.state === "active" || (b.state === "confirmed" && new Date(b.pickup_at).getTime() <= now && new Date(b.return_at).getTime() > now))
-      .map((b) => b.vehicle_id),
-  );
+  const out = new Set(bookings.filter((b) => isOutOnRental(b, now)).map((b) => b.vehicle_id));
   const booked = bookings.filter((b) => ["confirmed", "ready_for_pickup", "active", "completed"].includes(b.state));
   const revenue = booked.reduce((sum, b) => sum + b.total_cents, 0);
+  const requests = bookings.filter((b) => b.state === "pending_partner");
 
   return (
     <PageShell title="Partner dashboard" intro={`${partner.display_name} · Verified Rental Partner`}>
       <div className="space-y-6">
         {saved && SAVED[saved] && <Notice tone="success"><span data-testid="partner-notice">{SAVED[saved]}</span></Notice>}
+
+        {requests.length > 0 && (
+          <Notice tone="warning" title={`${requests.length} booking request${requests.length === 1 ? "" : "s"} waiting for you`}>
+            <ul className="mt-1 space-y-1" data-testid="pending-requests">
+              {requests.map((r) => (
+                <li key={r.id}>
+                  <Link href={`/partner/reservations/${r.id}`} className="font-medium underline underline-offset-4">{r.reference}</Link> · {(r.vehicle_snapshot as unknown as VehicleSnapshot).make} {(r.vehicle_snapshot as unknown as VehicleSnapshot).model}
+                </li>
+              ))}
+            </ul>
+          </Notice>
+        )}
 
         <dl className="grid gap-4 sm:grid-cols-3">
           {[

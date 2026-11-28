@@ -50,6 +50,12 @@ describe("quickCheckPhoto (browser side, before upload)", () => {
     expect(quickCheckPhoto({ name: "FUEL.JPEG", type: "image/jpeg", size: 1_500_000 })).toBeNull();
     expect(quickCheckPhoto({ name: "interior.png", type: "image/png", size: MAX_PHOTO_BYTES })).toBeNull();
   });
+  it("accepts real photos whose type the system reports as blank or an alias", () => {
+    expect(quickCheckPhoto({ name: "front.jpg", type: "", size: 1_500_000 })).toBeNull();
+    expect(quickCheckPhoto({ name: "front.jpg", type: "image/pjpeg", size: 1_500_000 })).toBeNull();
+    expect(quickCheckPhoto({ name: "photo", type: "image/jpeg", size: 1_500_000 })).toBeNull();
+    expect(quickCheckPhoto({ name: "notes.txt", type: "", size: 1024 })).toBe(MESSAGES.wrongType);
+  });
   it("refuses notes.pdf, a PDF renamed to .jpg, and big.jpg", () => {
     expect(quickCheckPhoto({ name: "notes.pdf", type: "application/pdf", size: 1024 * 1024 })).toBe(MESSAGES.wrongType);
     expect(quickCheckPhoto({ name: "notes.jpg", type: "application/pdf", size: 1024 * 1024 })).toBe(MESSAGES.wrongType);
